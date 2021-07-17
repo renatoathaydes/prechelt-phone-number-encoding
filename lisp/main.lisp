@@ -36,17 +36,19 @@
   the same integer as 2.  Therefore we prepend a 1 to every number, and R
   becomes 12 and ER becomes 102."
   (if (>= start (length digits))
-      (format t "~a:~{ ~a~}~%" num (reverse words))
+      (progn
+        (format t "~a:~{ ~a~}~%" num (reverse words))
+        t)
       (let ((found-word nil)
             (n 1)) ; leading zero problem
         (loop for i from start below (length digits) do
               (setf n (+ (* 10 n) (nth-digit digits i)))
               (loop for word in (gethash n *dict*) do
-                 (setf found-word t)
-                 (print-translations num digits (+ 1 i) (cons word words))))
+                 (setf found-word (or (print-translations num digits (+ 1 i) (cons word words)) found-word))))
         (when (and (not found-word) (not (numberp (first words))))
-           (print-translations num digits (+ start 1)
-                               (cons (nth-digit digits start) words))))))
+           (setf found-word (print-translations num digits (+ start 1)
+                               (cons (nth-digit digits start) words))))
+        found-word)))
 
 (defun load-dictionary (file size)
   "Create a hashtable from the file of words (one per line).  Takes a hint
