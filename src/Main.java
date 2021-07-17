@@ -25,26 +25,26 @@ final class Main {
 
 }
 
-/*
-The following mapping from letters to digits is given:
+/**
+ * The following mapping from letters to digits is given:
+ *
+ * E | J N Q | R W X | D S Y | F T | A M | C I V | B K U | L O P | G H Z
+ * e | j n q | r w x | d s y | f t | a m | c i v | b k u | l o p | g h z
+ * 0 |   1   |   2   |   3   |  4  |  5  |   6   |   7   |   8   |   9
 
-E | J N Q | R W X | D S Y | F T | A M | C I V | B K U | L O P | G H Z
-e | j n q | r w x | d s y | f t | a m | c i v | b k u | l o p | g h z
-0 |   1   |   2   |   3   |  4  |  5  |   6   |   7   |   8   |   9
-
-For the encoding only the letters are used, but
-the words must be printed in exactly the form given in the dictionary.
-Leading non-letters do not occur in the dictionary.
-
-Encodings of phone numbers can consist of a single word or of multiple
-words separated by spaces. The encodings are built word by word from
-left to right. If and only if at a particular point no word at all from
-the dictionary can be inserted, a single digit from the phone number can
-be copied to the encoding instead. Two subsequent digits are never
-allowed, though. To put it differently: In a partial encoding that
-currently covers k digits, digit k+1 is encoded by itself if and only if,
-first, digit k was not encoded by a digit and, second, there is no word
-in the dictionary that can be used in the encoding starting at digit k+1.
+ * For the encoding only the letters are used, but
+ * the words must be printed in exactly the form given in the dictionary.
+ * Leading non-letters do not occur in the dictionary.
+ *
+ * Encodings of phone numbers can consist of a single word or of multiple
+ * words separated by spaces. The encodings are built word by word from
+ * left to right. If and only if at a particular point no word at all from
+ * the dictionary can be inserted, a single digit from the phone number can
+ * be copied to the encoding instead. Two subsequent digits are never
+ * allowed, though. To put it differently: In a partial encoding that
+ * currently covers k digits, digit k+1 is encoded by itself if and only if,
+ * first, digit k was not encoded by a digit and, second, there is no word
+ * in the dictionary that can be used in the encoding starting at digit k+1.
  */
 final class PhoneNumberEncoder {
     private final Trie dictionary;
