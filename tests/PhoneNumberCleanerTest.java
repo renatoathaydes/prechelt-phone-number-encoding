@@ -12,7 +12,8 @@ public class PhoneNumberCleanerTest {
                 Arguments.of( "123", "123" ),
                 Arguments.of( "1-2-3", "123" ),
                 Arguments.of( "1/3", "13" ),
-                Arguments.of( "//1--3//", "13" )
+                Arguments.of( "//1--3//", "13" ),
+                Arguments.of( "/5//-39-", "539" )
         );
     }
 
