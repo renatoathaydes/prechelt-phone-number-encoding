@@ -148,24 +148,24 @@ final class Trie {
                                       int index,
                                       boolean allowInsertDigit,
                                       Consumer<List<Node>> onSolution ) {
-        var solutionFound = false;
+        var wordFound = false;
         if ( index < chars.length ) {
             var digit = chars[ index ] - 48;
             var trie = items[ digit ];
             if ( trie != null ) {
                 // keep going, there may be longer words which also match
-                solutionFound = trie.completeSolution( solution, chars, index + 1, false, onSolution );
+                wordFound = trie.completeSolution( solution, chars, index + 1, false, onSolution );
                 var atEndOfInput = index + 1 == chars.length;
 
                 // each word in this trie may provide a new solution
                 for ( Item word : trie.values ) {
+                    wordFound = true;
                     var nextSolution = append( solution, new Node( word ) );
                     // accept solution if we're at the end
                     if ( atEndOfInput ) {
                         onSolution.accept( nextSolution );
-                        solutionFound = true;
                     } else {
-                        solutionFound |= root.completeSolution( nextSolution, chars, index + 1, true, onSolution );
+                        root.completeSolution( nextSolution, chars, index + 1, true, onSolution );
                     }
                 }
             }
@@ -173,22 +173,24 @@ final class Trie {
             // If and only if at a particular point no word at all from
             // the dictionary can be inserted, a single digit from the phone number can
             // be copied to the encoding instead.
-            if ( !solutionFound && allowInsertDigit ) {
-                solutionFound = tryInjectDigit( solution, chars, index, onSolution );
+            if ( !wordFound && this == root ) {
+                if ( allowInsertDigit ) {
+                    tryInjectDigit( solution, chars, index, onSolution );
+                }
             }
         }
-        return solutionFound;
+        return wordFound;
     }
 
-    private boolean tryInjectDigit( List<Node> solution, char[] chars,
-                                    int index, Consumer<List<Node>> onSolution ) {
+    private void tryInjectDigit( List<Node> solution, char[] chars,
+                                 int index, Consumer<List<Node>> onSolution ) {
         solution = append( solution, new Node( chars[ index ] - 48 ) );
         // accept solution if we're at the end
         if ( index + 1 == chars.length ) {
             onSolution.accept( solution );
-            return true;
+            return;
         }
-        return root.completeSolution( solution, chars, index + 1, false, onSolution );
+        root.completeSolution( solution, chars, index + 1, false, onSolution );
     }
 
     //    E | J N Q | R W X | D S Y | F T | A M | C I V | B K U | L O P | G H Z
