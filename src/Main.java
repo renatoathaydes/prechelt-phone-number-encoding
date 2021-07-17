@@ -3,6 +3,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -13,14 +14,13 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
 final class Main {
     public static void main( String[] args ) throws IOException {
         var words = new InputParser( WordsInputCleaner::clean )
-                .parse( new File( "words.txt" ) )
-                .collect( Collectors.toSet() );
+                .parse( new File( args.length > 0 ? args[ 0 ] : "tests/words.txt" ) );
 
         var encoder = new PhoneNumberEncoder( words );
 
         new InputParser( PhoneNumberCleaner::clean )
-                .parse( new File( "numbers.txt" ) )
-                .forEach( phone -> encoder.encode( phone ).forEach( System.out::println ) );
+                .parse( new File( args.length > 1 ? args[ 1 ] : "tests/numbers.txt" ) )
+                .forEach( phone -> encoder.encode( phone, System.out::println ) );
     }
 
 }
@@ -49,15 +49,19 @@ in the dictionary that can be used in the encoding starting at digit k+1.
 final class PhoneNumberEncoder {
     private final Trie dictionary;
 
-    PhoneNumberEncoder( Set<Item> words ) {
+    PhoneNumberEncoder( Stream<Item> words ) {
         dictionary = new Trie();
-        for ( Item word : words ) {
-            dictionary.put( word );
-        }
+        //long start = System.currentTimeMillis();
+        words.forEach( dictionary::put );
+        //System.out.println( "Took " + ( System.currentTimeMillis() - start ) + "ms to load dictionary" );
     }
 
     Set<Item> encode( Item phone ) {
         return dictionary.get( phone );
+    }
+
+    void encode( Item phone, Consumer<Item> onSolution ) {
+        dictionary.forEachSolution( phone, onSolution );
     }
 }
 
@@ -77,10 +81,6 @@ final class Trie {
         Node( int digit ) {
             this.item = null;
             this.digit = digit;
-        }
-
-        boolean isDigit() {
-            return item == null;
         }
 
         static Item toItem( List<Node> nodes, Item phone ) {
@@ -124,63 +124,76 @@ final class Trie {
 
     Set<Item> get( Item phone ) {
         char[] chars = phone.result.toCharArray();
-        var result = getRecurse( List.of(), chars, 0 );
+        var result = new ArrayList<List<Node>>();
+        completeSolution( List.of(), chars, 0, true, result::add );
         return result.stream().map( n -> Node.toItem( n, phone ) ).collect( Collectors.toSet() );
     }
 
-    private List<List<Node>> getRecurse( List<Node> solution, char[] chars, int index ) {
+    void forEachSolution( Item phone, Consumer<Item> onSolution ) {
+        char[] chars = phone.result.toCharArray();
+        completeSolution( List.of(), chars, 0, true, solution ->
+                onSolution.accept( Node.toItem( solution, phone ) ) );
+    }
+
+    /**
+     * @param solution
+     * @param chars
+     * @param index
+     * @param allowInsertDigit
+     * @param onSolution
+     * @return true if at least one solution was found recursing into this branch
+     */
+    private boolean completeSolution( List<Node> solution,
+                                      char[] chars,
+                                      int index,
+                                      boolean allowInsertDigit,
+                                      Consumer<List<Node>> onSolution ) {
+        var solutionFound = false;
         if ( index < chars.length ) {
             var digit = chars[ index ] - 48;
             var trie = items[ digit ];
             if ( trie != null ) {
-                if ( trie.values.isEmpty() ) {
-                    // This is an intermediate trie, keep going
-                    var result = trie.getRecurse( solution, chars, index + 1 );
-                    if ( result.isEmpty() ) {
-                        result = tryInjectDigitIfAllowed( solution, chars, index );
+                // keep going, there may be longer words which also match
+                solutionFound = trie.completeSolution( solution, chars, index + 1, false, onSolution );
+                var atEndOfInput = index + 1 == chars.length;
+
+                // each word in this trie may provide a new solution
+                for ( Item word : trie.values ) {
+                    var nextSolution = append( solution, new Node( word ) );
+                    // accept solution if we're at the end
+                    if ( atEndOfInput ) {
+                        onSolution.accept( nextSolution );
+                        solutionFound = true;
+                    } else {
+                        solutionFound |= root.completeSolution( nextSolution, chars, index + 1, true, onSolution );
                     }
-                    return result;
-                } else {
-                    // each word in this trie may provide a new solution
-                    List<List<Node>> solutions = new ArrayList<>( 2 );
-                    for ( Item word : trie.values ) {
-                        solutions.addAll( findMoreWords( append( solution, new Node( word ) ), chars, index + 1 ) );
-                    }
-                    // and there may be longer words that can provide solutions as well
-                    solutions.addAll( trie.getRecurse( solution, chars, index + 1 ) );
-                    return solutions;
                 }
-            } else if ( index == 0 ) {
-                return tryInjectDigitIfAllowed( solution, chars, index );
+            }
+
+            // If and only if at a particular point no word at all from
+            // the dictionary can be inserted, a single digit from the phone number can
+            // be copied to the encoding instead.
+            if ( !solutionFound && allowInsertDigit ) {
+                solutionFound = tryInjectDigit( solution, chars, index, onSolution );
             }
         }
-        return List.of();
+        return solutionFound;
     }
 
-    private List<List<Node>> tryInjectDigitIfAllowed( List<Node> solution, char[] chars, int index ) {
-        // If and only if at a particular point no word at all from
-        // the dictionary can be inserted, a single digit from the phone number can
-        // be copied to the encoding instead. Two subsequent digits are never allowed, though.
-        var lastItemWasDigit = !solution.isEmpty() && solution.get( solution.size() - 1 ).isDigit();
-        if ( !lastItemWasDigit ) {
-            return findMoreWords( append( solution, new Node( chars[ index ] - 48 ) ), chars, index + 1 );
+    private boolean tryInjectDigit( List<Node> solution, char[] chars,
+                                    int index, Consumer<List<Node>> onSolution ) {
+        solution = append( solution, new Node( chars[ index ] - 48 ) );
+        // accept solution if we're at the end
+        if ( index + 1 == chars.length ) {
+            onSolution.accept( solution );
+            return true;
         }
-        return List.of();
+        return root.completeSolution( solution, chars, index + 1, false, onSolution );
     }
 
-    private List<List<Node>> findMoreWords( List<Node> solution, char[] chars, int index ) {
-        if ( index < chars.length ) {
-            var next = new char[ chars.length - index ];
-            System.arraycopy( chars, index, next, 0, next.length );
-            return root.getRecurse( solution, next, 0 );
-        }
-        // done navigating the phone number
-        return List.of( solution );
-    }
-
-//    E | J N Q | R W X | D S Y | F T | A M | C I V | B K U | L O P | G H Z
-//    e | j n q | r w x | d s y | f t | a m | c i v | b k u | l o p | g h z
-//    0 |   1   |   2   |   3   |  4  |  5  |   6   |   7   |   8   |   9
+    //    E | J N Q | R W X | D S Y | F T | A M | C I V | B K U | L O P | G H Z
+    //    e | j n q | r w x | d s y | f t | a m | c i v | b k u | l o p | g h z
+    //    0 |   1   |   2   |   3   |  4  |  5  |   6   |   7   |   8   |   9
     static int charToDigit( char c ) {
         return switch ( c ) {
             case 'e' -> 0;
@@ -262,12 +275,12 @@ final class InputParser {
 
 }
 
-/*
-The words are taken from a dictionary which
-is given as an alphabetically sorted ASCII file (one word per line).
-
-[NOTE: The dictionary is in German and contains umlaut characters
-encoded as double-quotes.  The double-quotes should be ignored.  EG.]
+/**
+ * The words are taken from a dictionary which
+ * is given as an alphabetically sorted ASCII file (one word per line).
+ * <p>
+ * [NOTE: The dictionary is in German and contains umlaut characters
+ * encoded as double-quotes.  The double-quotes should be ignored.  EG.]
  */
 final class WordsInputCleaner {
     private static final Pattern NOT_LETTERS = Pattern.compile( "[^a-zA-Z]" );
@@ -277,10 +290,10 @@ final class WordsInputCleaner {
     }
 }
 
-/*
-A phone number is an
-arbitrary(!) string of dashes - , slashes / and digits. The dashes and
-slashes will not be encoded.
+/**
+ * A phone number is an
+ * arbitrary(!) string of dashes - , slashes / and digits. The dashes and
+ * slashes will not be encoded.
  */
 final class PhoneNumberCleaner {
     private static final Pattern IGNORE_CHARS = Pattern.compile( "[-/]" );
