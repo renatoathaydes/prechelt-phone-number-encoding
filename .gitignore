@@ -1,1 +1,5 @@
 out/
+build/
+german-words*
+*_out.txt
+phones.txt
