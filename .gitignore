@@ -1,5 +1,7 @@
 out/
 build/
+target/
 german-words*
 *_out.txt
 phones.txt
+Cargo.lock

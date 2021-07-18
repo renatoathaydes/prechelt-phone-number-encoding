@@ -1,0 +1,12 @@
+[package]
+name = "phone_encoder"
+version = "0.1.0"
+edition = "2018"
+authors = ["Renato Athaydes <renato@athaydes.com>"]
+license = ""
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+num-bigint = "0.4"
+lazy_static = "1.4.0"
