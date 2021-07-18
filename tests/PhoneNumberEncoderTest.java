@@ -2,6 +2,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -39,6 +40,9 @@ public class PhoneNumberEncoderTest {
 
     static final PhoneNumberEncoder encoder = new PhoneNumberEncoder( WORDS.stream() );
 
+    // the encode2 does not use Item as input as it cleans the numbers itself
+    static final PhoneNumberEncoder2 encoder2 = new PhoneNumberEncoder2( WORDS.stream().map( i -> i.original ) );
+
     @ParameterizedTest
     @MethodSource( "canEncodePhoneNumbersExamples" )
     public void canEncodePhoneNumbers( Item phone, Set<String> possibleEncodings ) {
@@ -46,7 +50,29 @@ public class PhoneNumberEncoderTest {
                 .map( possibility -> new Item( phone.original, possibility ) )
                 .collect( Collectors.toSet() );
 
-        assertEquals( expected, encoder.encode( phone ) );
+        assertEquals( expected, encode( phone ) );
+    }
+
+    @ParameterizedTest
+    @MethodSource( "canEncodePhoneNumbersExamples" )
+    public void canEncodePhoneNumbers2( Item phone, Set<String> possibleEncodings ) {
+        var expected = possibleEncodings.stream()
+                .map( possibility -> new Item( phone.original, possibility ) )
+                .collect( Collectors.toSet() );
+
+        assertEquals( expected, encode2( phone.original ) );
+    }
+
+    private static Set<Item> encode( Item phone ) {
+        var result = new HashSet<Item>();
+        encoder.encode( phone, result::add );
+        return result;
+    }
+
+    private static Set<Item> encode2( String phone ) {
+        var result = new HashSet<Item>();
+        encoder2.encode( phone, ( num, solution ) -> result.add( new Item( num, solution ) ) );
+        return result;
     }
 
 }
