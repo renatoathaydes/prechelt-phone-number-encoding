@@ -2,7 +2,10 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
@@ -27,15 +30,15 @@ final class Main {
 
 /**
  * The following mapping from letters to digits is given:
- *
+ * <p>
  * E | J N Q | R W X | D S Y | F T | A M | C I V | B K U | L O P | G H Z
  * e | j n q | r w x | d s y | f t | a m | c i v | b k u | l o p | g h z
  * 0 |   1   |   2   |   3   |  4  |  5  |   6   |   7   |   8   |   9
-
+ * <p>
  * For the encoding only the letters are used, but
  * the words must be printed in exactly the form given in the dictionary.
  * Leading non-letters do not occur in the dictionary.
- *
+ * <p>
  * Encodings of phone numbers can consist of a single word or of multiple
  * words separated by spaces. The encodings are built word by word from
  * left to right. If and only if at a particular point no word at all from
@@ -54,10 +57,6 @@ final class PhoneNumberEncoder {
         //long start = System.currentTimeMillis();
         words.forEach( dictionary::put );
         //System.out.println( "Took " + ( System.currentTimeMillis() - start ) + "ms to load dictionary" );
-    }
-
-    Set<Item> encode( Item phone ) {
-        return dictionary.get( phone );
     }
 
     void encode( Item phone, Consumer<Item> onSolution ) {
@@ -122,13 +121,6 @@ final class Trie {
         }
     }
 
-    Set<Item> get( Item phone ) {
-        char[] chars = phone.result.toCharArray();
-        var result = new ArrayList<List<Node>>();
-        completeSolution( List.of(), chars, 0, true, result::add );
-        return result.stream().map( n -> Node.toItem( n, phone ) ).collect( Collectors.toSet() );
-    }
-
     void forEachSolution( Item phone, Consumer<Item> onSolution ) {
         char[] chars = phone.result.toCharArray();
         completeSolution( List.of(), chars, 0, true, solution ->
@@ -136,18 +128,18 @@ final class Trie {
     }
 
     /**
-     * @param solution
-     * @param chars
-     * @param index
-     * @param allowInsertDigit
-     * @param onSolution
-     * @return true if at least one solution was found recursing into this branch
+     * @param solution         current partial solution
+     * @param chars            phone number digits
+     * @param index            current index on chars
+     * @param allowInsertDigit whether the current position may accept a digit in the solution
+     * @param onSolution       callback to call when a full solution is found
+     * @return true if at least one word was found recursing into this branch
      */
-    private boolean completeSolution( List<Node> solution,
-                                      char[] chars,
-                                      int index,
-                                      boolean allowInsertDigit,
-                                      Consumer<List<Node>> onSolution ) {
+    boolean completeSolution( List<Node> solution,
+                              char[] chars,
+                              int index,
+                              boolean allowInsertDigit,
+                              Consumer<List<Node>> onSolution ) {
         var wordFound = false;
         if ( index < chars.length ) {
             var digit = chars[ index ] - 48;
