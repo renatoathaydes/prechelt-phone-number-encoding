@@ -26,6 +26,8 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
  *     This was done to make the code more easily testable.
  *     </li>
  * </ul>
+ *
+ * @author Renato Athaydes
  */
 final class Main2 {
     public static void main( String[] args ) throws IOException {

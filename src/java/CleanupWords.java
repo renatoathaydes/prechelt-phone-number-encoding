@@ -16,6 +16,8 @@ import static java.util.Map.entry;
  * Run this class the the file path as argument.
  * <p>
  * The output is written to file {@code <input-file-name>.ascii}.
+ *
+ * @author Renato Athaydes
  */
 public class CleanupWords {
 

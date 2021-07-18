@@ -5,6 +5,8 @@ import java.util.stream.IntStream;
  * Prints 1000 random phone numbers.
  * <p>
  * By default, 1000 numbers are generated. To modify that, pass the desired count as an argument.
+ *
+ * @author Renato Athaydes
  */
 public class GeneratePhoneNumbers {
     public static void main( String[] args ) {

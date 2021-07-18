@@ -14,6 +14,11 @@ import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
+/**
+ * My first solution to the Prechelt phone-encoding problem.
+ *
+ * @author Renato Athaydes
+ */
 final class Main {
     public static void main( String[] args ) throws IOException {
         var words = new InputParser( WordsInputCleaner::clean )

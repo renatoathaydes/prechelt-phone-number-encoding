@@ -23,6 +23,8 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
  * <p>
  * There's one condition that is currently missing, which is the case where a valid solution is missing, but to
  * know that it would be necessary to have a provably correct program that could be used as an oracle.
+ *
+ * @author Renato Athaydes
  */
 public class OutputChecker {
     private static final Pattern IRRELEVANT_SOLUTION_CHARS = Pattern.compile( "[^0-9a-zA-Z]" );
