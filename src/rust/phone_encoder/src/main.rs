@@ -19,9 +19,8 @@ lazy_static! {
 /// Even though this is intended as a port, it deviates quite a bit from it
 /// due to the very different natures of Lisp and Rust.
 fn main() -> io::Result<()> {
-    let mut args: Vec<_> = args().collect();
     // drop itself from args
-    args.remove(0);
+    let mut args: Vec<_> = args().skip(1).collect();
     let words_file: String = if !args.is_empty() { args.remove(0) } else { "tests/words.txt".into() };
     let input_file: String = if !args.is_empty() { args.remove(0) } else { "tests/numbers.txt".into() };
 
@@ -73,13 +72,20 @@ fn print_translations(
 }
 
 fn print_solution(num: &str, words: &Vec<&String>) {
-    if words.is_empty() { return; }
+    // do a little gymnastics here to avoid allocating a big string just for printing it
     print!("{}", num);
+    if words.is_empty() {
+        println!(":");
+        return;
+    }
     print!(": ");
-    for word in  words[0..words.len() - 1].iter() {
+    let (head, tail) = words.split_at(words.len() - 1);
+    for word in head {
         print!("{} ", word);
     }
-    println!("{}", words.last().unwrap());
+    for word in tail { // only last word in tail
+        println!("{}", word);
+    }
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
@@ -114,13 +120,12 @@ fn word_to_number(word: &str) -> BigUint {
 }
 
 fn nth_digit(digits: &Vec<char>, i: usize) -> BigUint {
-    let ch = unsafe { digits.get_unchecked(i) };
+    let ch = digits.get(i).expect("index out of bounds");
     ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
 }
 
 fn is_digit(string: &str) -> bool {
-    let chars: Vec<_> = string.chars().collect();
-    chars.len() == 1 && chars.first().unwrap().is_digit(10)
+    string.len() == 1 && string.chars().next().unwrap().is_digit(10)
 }
 
 fn char_to_digit(ch: char) -> u32 {
