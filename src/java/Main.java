@@ -73,8 +73,8 @@ final class Trie {
     // A node is an item in a List representing a current candidate for a solution...
     // A full solution is a List of Node's where each Node is a word or a char digit
     static class Node {
-        final Item item;
-        final int digit;
+        private final Item item;
+        private final int digit;
 
         Node( Item item ) {
             assert item != null;
@@ -89,10 +89,10 @@ final class Trie {
 
         static Item toItem( List<Node> nodes, Item phone ) {
             var solution = nodes.stream()
-                    .map( node -> node.item == null ? node.digit : node.item.original )
+                    .map( node -> node.item == null ? node.digit : node.item.original() )
                     .map( Object::toString )
                     .collect( Collectors.joining( " " ) );
-            return new Item( phone.original, solution );
+            return new Item( phone.original(), solution );
         }
     }
 
@@ -109,7 +109,7 @@ final class Trie {
     }
 
     void put( Item item ) {
-        put( item.result.toCharArray(), 0, item );
+        put( item.result().toCharArray(), 0, item );
     }
 
     void put( char[] chars, int index, Item item ) {
@@ -127,7 +127,7 @@ final class Trie {
     }
 
     void forEachSolution( Item phone, Consumer<Item> onSolution ) {
-        char[] chars = phone.result.toCharArray();
+        char[] chars = phone.result().toCharArray();
         completeSolution( List.of(), chars, 0, true, solution ->
                 onSolution.accept( Node.toItem( solution, phone ) ) );
     }
@@ -217,36 +217,10 @@ final class Trie {
     }
 }
 
-final class Item {
-    final String original;
-    final String result;
-
-    Item( String original, String result ) {
-        this.original = original;
-        this.result = result;
-    }
+record Item(String original, String result) {
 
     Item( String result ) {
-        this.original = result;
-        this.result = result;
-    }
-
-    @Override
-    public boolean equals( Object o ) {
-        if ( this == o ) return true;
-        if ( o == null || getClass() != o.getClass() ) return false;
-
-        Item word = ( Item ) o;
-
-        if ( !original.equals( word.original ) ) return false;
-        return result.equals( word.result );
-    }
-
-    @Override
-    public int hashCode() {
-        int result = original.hashCode();
-        result = 31 * result + this.result.hashCode();
-        return result;
+        this( result, result );
     }
 
     @Override
@@ -269,7 +243,7 @@ final class InputParser {
     Stream<Item> parse( BufferedReader reader ) {
         return reader.lines()
                 .map( line -> new Item( line, cleaner.apply( line ) ) )
-                .filter( word -> !word.result.isEmpty() );
+                .filter( word -> !word.result().isEmpty() );
     }
 
 }

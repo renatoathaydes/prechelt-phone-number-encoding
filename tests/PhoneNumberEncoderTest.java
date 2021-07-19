@@ -41,13 +41,13 @@ public class PhoneNumberEncoderTest {
     static final PhoneNumberEncoder encoder = new PhoneNumberEncoder( WORDS.stream() );
 
     // the encode2 does not use Item as input as it cleans the numbers itself
-    static final PhoneNumberEncoder2 encoder2 = new PhoneNumberEncoder2( WORDS.stream().map( i -> i.original ) );
+    static final PhoneNumberEncoder2 encoder2 = new PhoneNumberEncoder2( WORDS.stream().map( i -> i.original() ) );
 
     @ParameterizedTest
     @MethodSource( "canEncodePhoneNumbersExamples" )
     public void canEncodePhoneNumbers( Item phone, Set<String> possibleEncodings ) {
         var expected = possibleEncodings.stream()
-                .map( possibility -> new Item( phone.original, possibility ) )
+                .map( possibility -> new Item( phone.original(), possibility ) )
                 .collect( Collectors.toSet() );
 
         assertEquals( expected, encode( phone ) );
@@ -57,10 +57,10 @@ public class PhoneNumberEncoderTest {
     @MethodSource( "canEncodePhoneNumbersExamples" )
     public void canEncodePhoneNumbers2( Item phone, Set<String> possibleEncodings ) {
         var expected = possibleEncodings.stream()
-                .map( possibility -> new Item( phone.original, possibility ) )
+                .map( possibility -> new Item( phone.original(), possibility ) )
                 .collect( Collectors.toSet() );
 
-        assertEquals( expected, encode2( phone.original ) );
+        assertEquals( expected, encode2( phone.original() ) );
     }
 
     private static Set<Item> encode( Item phone ) {

@@ -41,14 +41,18 @@ public class TrieTest {
     }
 
     private static Item solution( Item phone, Item... words ) {
-        return new Item( phone.original, Stream.of( words ).map( w -> w.original ).collect( joining( " " ) ) );
+        return new Item( phone.original(), Stream.of( words )
+                .map( Item::original )
+                .collect( joining( " " ) ) );
     }
 
     private static Set<Item> get( Trie trie, Item phone ) {
-        char[] chars = phone.result.toCharArray();
+        char[] chars = phone.result().toCharArray();
         var result = new ArrayList<List<Trie.Node>>();
         trie.completeSolution( List.of(), chars, 0, true, result::add );
-        return result.stream().map( n -> Trie.Node.toItem( n, phone ) ).collect( Collectors.toSet() );
+        return result.stream()
+                .map( n -> Trie.Node.toItem( n, phone ) )
+                .collect( Collectors.toSet() );
     }
 
 }
