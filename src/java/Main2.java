@@ -3,7 +3,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -75,19 +74,19 @@ final class PhoneNumberEncoder2 {
             onSolution.accept( num, String.join( " ", words ) );
             return;
         }
-        final var foundWord = new AtomicBoolean( false );
+        var foundWord = false;
         var n = BigInteger.ONE;
         for ( int i = start; i < digits.length; i++ ) {
-            final var j = i;
-            n = n.multiply( BigInteger.TEN ).add( BigInteger.valueOf( nthDigit( digits, i ) ) );
-            Optional.ofNullable( dict.get( n ) ).ifPresent( foundWords -> {
-                foundWord.set( true );
+            n = appendNum( n, nthDigit( digits, i ), i );
+            List<String> foundWords = dict.get( n );
+            if ( foundWords != null ) {
+                foundWord = true;
                 for ( String word : foundWords ) {
-                    printTranslations( num, digits, j + 1, append( words, word ), onSolution );
+                    printTranslations( num, digits, i + 1, append( words, word ), onSolution );
                 }
-            } );
+            }
         }
-        if ( !foundWord.get() && !isLastItemDigit( words ) ) {
+        if ( !foundWord && !isLastItemDigit( words ) ) {
             printTranslations( num, digits, start + 1,
                     append( words, Integer.toString( nthDigit( digits, start ) ) ), onSolution );
         }
@@ -106,16 +105,18 @@ final class PhoneNumberEncoder2 {
 
     private static BigInteger wordToNumber( String word ) {
         var n = BigInteger.ONE;
-        for ( char c : word.toCharArray() ) {
+        char[] chars = word.toCharArray();
+        for ( int i = 0; i < chars.length; i++ ) {
+            char c = chars[ i ];
             if ( Character.isLetter( c ) ) {
-                n = n.multiply( BigInteger.TEN ).add( BigInteger.valueOf( charToDigit( c ) ) );
+                n = appendNum( n, charToDigit( c ), i );
             }
         }
         return n;
     }
 
     private static int nthDigit( char[] digits, int n ) {
-        return digits[ n ] - ( ( int ) '0' );
+        return digits[ n ] - ( int ) '0';
     }
 
     static int charToDigit( char c ) {
@@ -139,6 +140,16 @@ final class PhoneNumberEncoder2 {
         result.addAll( list );
         result.add( item );
         return Collections.unmodifiableList( result );
+    }
+
+    private static BigInteger appendNum( BigInteger n, int digit, int length ) {
+        // n has the given length in digits, hence we know that if it is small enough,
+        // we can do that calculation using a simple long.
+        // The maximum long is 9,223,372,036,854,775,808
+        if ( length < 19 ) {
+            return BigInteger.valueOf( n.longValue() * 10L + digit );
+        }
+        return n.multiply( BigInteger.TEN ).add( BigInteger.valueOf( digit ) );
     }
 
 }
