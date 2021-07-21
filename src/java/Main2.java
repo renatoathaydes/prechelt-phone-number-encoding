@@ -77,7 +77,7 @@ final class PhoneNumberEncoder2 {
         var foundWord = false;
         var n = BigInteger.ONE;
         for ( int i = start; i < digits.length; i++ ) {
-            n = appendNum( n, nthDigit( digits, i ), i );
+            n = n.multiply( BigInteger.TEN ).add( BigInteger.valueOf( nthDigit( digits, i ) ) );
             List<String> foundWords = dict.get( n );
             if ( foundWords != null ) {
                 foundWord = true;
@@ -105,11 +105,9 @@ final class PhoneNumberEncoder2 {
 
     private static BigInteger wordToNumber( String word ) {
         var n = BigInteger.ONE;
-        char[] chars = word.toCharArray();
-        for ( int i = 0; i < chars.length; i++ ) {
-            char c = chars[ i ];
+        for ( char c : word.toCharArray() ) {
             if ( Character.isLetter( c ) ) {
-                n = appendNum( n, charToDigit( c ), i );
+                n = n.multiply( BigInteger.TEN ).add( BigInteger.valueOf( charToDigit( c ) ) );
             }
         }
         return n;
@@ -140,16 +138,6 @@ final class PhoneNumberEncoder2 {
         result.addAll( list );
         result.add( item );
         return Collections.unmodifiableList( result );
-    }
-
-    private static BigInteger appendNum( BigInteger n, int digit, int length ) {
-        // n has the given length in digits, hence we know that if it is small enough,
-        // we can do that calculation using a simple long.
-        // The maximum long is 9,223,372,036,854,775,808
-        if ( length < 19 ) {
-            return BigInteger.valueOf( n.longValue() * 10L + digit );
-        }
-        return n.multiply( BigInteger.TEN ).add( BigInteger.valueOf( digit ) );
     }
 
 }
