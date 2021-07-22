@@ -1,7 +1,10 @@
 out/
 build/
 target/
-german-words*
-*_out.txt
-phones.txt
+*.txt
+!dictionary.txt
+!input.txt
+!output.txt
 Cargo.lock
+phone_encoder
+benchmark_runner
