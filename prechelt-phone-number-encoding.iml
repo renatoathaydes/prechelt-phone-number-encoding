@@ -6,7 +6,9 @@
       <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
       <sourceFolder url="file://$MODULE_DIR$/src/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/rust/phone_encoder/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/rust/benchmark_runner/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/src/rust/phone_encoder/target" />
+      <excludeFolder url="file://$MODULE_DIR$/src/rust/benchmark_runner/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
