@@ -1,8 +1,8 @@
 /*
  * Tiny Program that allocates a number of bytes, then sleeps for an amount of time.
  * Args:
- *    - <byte>    how many bytes to allocate
- *    - <time>    time to sleep in seconds
+ *    - <byte>  how many bytes to allocate
+ *    - <time>  time to sleep in seconds
  *
  * Author: Renato Athaydes
 */
