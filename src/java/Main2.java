@@ -36,7 +36,7 @@ final class Main2 {
         var encoder = new PhoneNumberEncoder2( words );
 
         new BufferedReader( new FileReader(
-                args.length > 0 ? args[ 0 ] : "tests/numbers.txt", US_ASCII )
+                args.length > 1 ? args[ 1 ] : "tests/numbers.txt", US_ASCII )
         ).lines().forEach( num -> encoder.encode( num,
                 ( phone, solution ) -> System.out.println( phone + ": " + solution ) ) );
     }
