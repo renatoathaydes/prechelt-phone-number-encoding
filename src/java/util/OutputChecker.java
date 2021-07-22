@@ -1,3 +1,5 @@
+package util;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -59,7 +61,7 @@ public class OutputChecker {
                 fail( lineNumber, "Solution contains word '" + part + "' which is not in dictionary: " + solution );
             }
         }
-        var cleanPhone = PhoneNumberCleaner.clean( phone );
+        var cleanPhone = phone.replaceAll( "[-/]", "" );
         var cleanSolution = cleanSolution( solution );
         if ( cleanPhone.length() != cleanSolution.length() ) {
             fail( lineNumber, "Lengths differ: phone='" + cleanPhone + "', solution='" + cleanSolution + "'" );

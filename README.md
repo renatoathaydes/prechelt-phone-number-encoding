@@ -61,7 +61,7 @@ I found on GitHub because I couldn't find the original document used in the stud
 follow-up Lisp study seemed to have bothered making their test data available, let alone the solutions submitted by the
 participants, so I had to content myself with using what I could get.
 
-I used the [CleanupWords.java](src/java/CleanupWords.java) code to turn the UTF-8 German words into ASCII, so the program
+I used the [util.CleanupWords.java](src/java/CleanupWords.java) code to turn the UTF-8 German words into ASCII, so the program
 input was similar to what had been used in the original study, hopefully. I also took only the first `75_000` words
 (out of a total of `1_908_815`) as this was a _Quantitative Requirement_ of the original study.
 
@@ -94,7 +94,7 @@ I wrote a small [Java program](src/java/CleanupWords.java) that does that for th
 You can run it as follows:
 
 ```
-java -cp build CleanupWords german-words.txt # or the name of the file you downloaded
+java -cp build util.CleanupWords german-words.txt # or the name of the file you downloaded
 ```
 
 > This command accepts a second argument to set the maximum number of words to include. By default, it only uses
@@ -112,7 +112,7 @@ Phone numbers are limited to between 1 and 50 characters with at least one of th
 The program prints the phone numbers to stdout, so to save them into a file, pipe the output to the file:
 
 ```
-java -cp build GeneratePhoneNumbers > phones.txt
+java -cp build util.GeneratePhoneNumbers > phones.txt
 ```
 
 > By default, 1000 phone numbers are generated. You can pass another count as an argument if desired.
@@ -214,8 +214,8 @@ To know for sure which program scales better, we should try again with more word
 To try with 750_000 words and 10_000 phone numbers, we can generate the input data first:
 
 ```
-java -cp build CleanupWords german-words.txt 750000
-java -cp build GeneratePhoneNumbers 10000 > phones.txt
+java -cp build util.CleanupWords german-words.txt 750000
+java -cp build util.GeneratePhoneNumbers 10000 > phones.txt
 ```
 
 Double check that the files have changed as expected:
@@ -272,10 +272,10 @@ Doing that is much easier than finding the solutions in the first place, so I am
 To run the output checker, run the following commands:
 
 ```
-▶ java -cp build OutputChecker german-words.txt.ascii java_out.txt 
+▶ java -cp build util.OutputChecker german-words.txt.ascii java_out.txt 
 OK
 
-▶ java -cp build OutputChecker german-words.txt.ascii sbcl_out.txt 
+▶ java -cp build util.OutputChecker german-words.txt.ascii sbcl_out.txt 
 OK
 ```
 
