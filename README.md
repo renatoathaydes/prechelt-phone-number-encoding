@@ -60,8 +60,17 @@ $ javac src/java/util/*.java -d build
 
 ### Rust
 
+Compile the Rust solution:
+
 ```
 $ cd src/rust/phone_encoder
+$ cargo build --release
+```
+
+Compile the Benchmark runner:
+
+```
+$ cd src/rust/benchmark_runner
 $ cargo build --release
 ```
 
@@ -147,7 +156,7 @@ To run it yourself, checkout this repository and run:
 
 ## Solutions in other languages
 
-I've found the following other solutions to Prechetl's phone number encoding so far:
+I've found the following other solutions to Prechelt's phone number encoding so far:
 
 * [Lua, by Andrew Yourtchenko](https://gist.github.com/ayourtch/752460)
 * [Python, by Josiah Carlson](https://gist.github.com/josiahcarlson/752208)
