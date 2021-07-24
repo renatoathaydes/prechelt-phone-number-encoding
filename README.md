@@ -99,10 +99,25 @@ To verify that your program works correctly execute it with arguments `dictionar
 to a file, say `prog_out.txt`, then run:
 
 ```
-diff -q <(sort prog_out.txt) <(sort output.txt)
+$ diff -q <(sort prog_out.txt) <(sort output.txt)
 ```
 
 If `diff` exits with `0` and does not print anything, your program is good.
+
+The benchmarks generate input files of different sizes by running my Java utility. If you want to try your solution
+with larger inputs, try this, for example, to generate 50,000 random phone numbers:
+
+```
+$ java -cp build/util util.GeneratePhoneNumbers 50000 > phones_50_000.txt
+```
+
+To partially check your solution works with the larger inputs
+(the checker cannot guarantee that the digit-substitution algorithm is perfectly correct),
+run my Java utility as follows:
+
+```
+$ java -cp build/util util.OutputChecker dictionary.txt program_output.txt
+```
 
 ## Benchmarks
 
