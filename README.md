@@ -43,6 +43,7 @@ The benchmarks currently require the following tools:
 * Java 16+.
 * Rust and Cargo (tested with `rustc 1.53.0 (53cb7b09b 2021-06-17)`).
 * [SBCL](https://lisp-lang.org/learn/getting-started/), Steel Bank Common Lisp compiler.
+* Dart 2.13+.
 
 ### Java
 
@@ -78,6 +79,15 @@ $ cargo build --release
 
 No compilation is required.
 
+## Dart
+
+Compilation is optional, but can be done as follows:
+
+```
+$ cd src/dart/phone-encoder
+$ dart compile exe bin/phone_encoder.dart
+```
+
 ## Running
 
 ### Java
@@ -100,6 +110,22 @@ $ ./phone_encoder dictionary.txt input.txt
 
 ```
 $ sbcl --script src/lisp/main.lisp dictionary.txt input.txt
+```
+
+### Dart
+
+Interpreted mode:
+
+```
+$ cd src/dart/phone-encoder
+$ dart bin/phone_encoder.dart dictionary.txt input.txt
+```
+
+Compiled mode:
+
+```
+$ cd src/dart/phone-encoder
+$ bin/phone_encoder.exe dictionary.txt input.txt
 ```
 
 ## Testing
