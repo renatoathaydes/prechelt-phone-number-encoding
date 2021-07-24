@@ -9,6 +9,9 @@
       <sourceFolder url="file://$MODULE_DIR$/src/rust/benchmark_runner/src" isTestSource="false" />
       <excludeFolder url="file://$MODULE_DIR$/src/rust/phone_encoder/target" />
       <excludeFolder url="file://$MODULE_DIR$/src/rust/benchmark_runner/target" />
+      <excludeFolder url="file://$MODULE_DIR$/src/dart/phone-encoder/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/src/dart/phone-encoder/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/src/dart/phone-encoder/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
@@ -28,5 +31,7 @@
         <SOURCES />
       </library>
     </orderEntry>
+    <orderEntry type="library" name="Dart SDK" level="project" />
+    <orderEntry type="library" name="Dart Packages" level="project" />
   </component>
 </module>

@@ -13,6 +13,7 @@ COMMANDS=(
   "java -cp build/java Main2"         # Java 2
   "sbcl --script src/lisp/main.lisp"  # Common Lisp
   "./phone_encoder"                   # Rust
+  "src/dart/phone-encoder/bin/phone_encoder.exe" # Dart
 )
 
 echo "Compiling Java sources"
@@ -23,6 +24,10 @@ javac src/java/util/*.java -d build/util
 echo "Compiling Rust sources"
 cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_encoder ../../../
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
+cd ../../..
+
+echo "Compiling Dart sources"
+cd src/dart/phone-encoder && dart compile exe bin/phone_encoder.dart
 cd ../../..
 
 echo "Generating inputs"
