@@ -11,7 +11,6 @@ set -e
 COMMANDS=(
   "java -cp build/java Main"          # Java 1
   "java -cp build/java Main2"         # Java 2
-  "java -cp build/java Main3"         # Java 3
   "sbcl --script src/lisp/main.lisp"  # Common Lisp
   "./phone_encoder"                   # Rust
 )
