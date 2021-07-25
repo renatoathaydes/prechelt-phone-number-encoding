@@ -38,7 +38,7 @@ function nthDigit(digits::String, i::Int64)::UInt
     UInt(digits[i]) - UInt('0')
 end
 
-function charToDigit(ch)
+function charToDigit(ch::Char)::UInt
     ch = lowercase(ch)
     ch == 'e' && return 0
     ch in ['j', 'n', 'q'] && return 1
