@@ -163,3 +163,9 @@ I've found the following other solutions to Prechelt's phone number encoding so 
 * [Scala, by anatoli](https://github.com/tolks/scala-test-drive/blob/master/Matcher.scala)
 * [Common Lisp, by Peter Norvig](http://www.norvig.com/java-lisp.html)
 * [Haskell, several solutions](https://wiki.haskell.org/Phone_number)
+
+This repository includes also [Dart](https://dart.dev/) and [Julia](https://julialang.org/) solutions in the
+`dart` and `julia` branches, respectively.
+
+* [Dart, by Renato Athaydes](https://github.com/renatoathaydes/prechelt-phone-number-encoding/blob/dart/src/dart/phone-encoder/bin/phone_encoder.dart)
+* [Julia, by Renato Athaydes](https://github.com/renatoathaydes/prechelt-phone-number-encoding/blob/julia/src/julia/phone_encoder.jl)
