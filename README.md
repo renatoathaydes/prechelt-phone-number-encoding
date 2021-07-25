@@ -44,6 +44,7 @@ The benchmarks currently require the following tools:
 * Rust and Cargo (tested with `rustc 1.53.0 (53cb7b09b 2021-06-17)`).
 * [SBCL](https://lisp-lang.org/learn/getting-started/), Steel Bank Common Lisp compiler.
 * Dart 2.13+.
+* Julia 1.6.2+
 
 ### Java
 
@@ -79,7 +80,7 @@ $ cargo build --release
 
 No compilation is required.
 
-## Dart
+### Dart
 
 Compilation is optional, but can be done as follows:
 
@@ -87,6 +88,10 @@ Compilation is optional, but can be done as follows:
 $ cd src/dart/phone-encoder
 $ dart compile exe bin/phone_encoder.dart
 ```
+
+### Julia
+
+No compilation is required.
 
 ## Running
 
@@ -126,6 +131,12 @@ Compiled mode:
 ```
 $ cd src/dart/phone-encoder
 $ bin/phone_encoder.exe dictionary.txt input.txt
+```
+
+### Julia
+
+```
+$ julia src/julia/phone_encoder.jl dictionary.txt input.txt
 ```
 
 ## Testing
