@@ -14,6 +14,7 @@ COMMANDS=(
   "sbcl --script src/lisp/main.lisp"  # Common Lisp
   "./phone_encoder"                   # Rust
   "src/dart/phone-encoder/bin/phone_encoder.exe" # Dart
+  "julia src/julia/phone_encoder.jl"  # Julia
 )
 
 echo "Compiling Java sources"
