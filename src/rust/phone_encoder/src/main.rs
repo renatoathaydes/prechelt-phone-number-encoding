@@ -4,15 +4,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use lazy_static::lazy_static;
-use num_bigint::{BigUint, ToBigUint};
-
-type Dictionary = HashMap<BigUint, Vec<String>>;
-
-lazy_static! {
-    static ref ONE: BigUint = 1.to_biguint().unwrap();
-    static ref TEN: BigUint =10.to_biguint().unwrap();
-}
+type Dictionary = HashMap<Vec<char>, Vec<String>>;
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
@@ -48,10 +40,10 @@ fn print_translations(
         print_solution(num, &words);
         return Ok(());
     }
-    let mut n = ONE.clone();
+    let mut n = Vec::new();
     let mut found_word = false;
     for i in start..digits.len() {
-        n = &n * (&*TEN) + &nth_digit(digits, i);
+        n.push(nth_digit(digits, i));
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
@@ -109,19 +101,18 @@ fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     Ok(io::BufReader::new(file).lines())
 }
 
-fn word_to_number(word: &str) -> BigUint {
-    let mut n = ONE.clone();
+fn word_to_number(word: &str) -> Vec<char> {
+    let mut n = Vec::new();
     for ch in word.chars() {
         if ch.is_alphabetic() {
-            n = &n * (&*TEN) + &char_to_digit(ch);
+            n.push(std::char::from_digit(char_to_digit(ch), 10).unwrap());
         }
     }
     n
 }
 
-fn nth_digit(digits: &Vec<char>, i: usize) -> BigUint {
-    let ch = digits.get(i).expect("index out of bounds");
-    ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
+fn nth_digit(digits: &Vec<char>, i: usize) -> char {
+    digits.get(i).expect("index out of bounds").clone()
 }
 
 fn is_digit(string: &str) -> bool {
