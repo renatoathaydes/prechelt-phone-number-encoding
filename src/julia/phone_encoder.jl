@@ -38,24 +38,19 @@ function nthDigit(digits::String, i::Int64)::UInt
     UInt(digits[i]) - UInt('0')
 end
 
-const charDigits = Dict{Char, UInt}(
-    'e' => 0,
-    'j' => 1, 'n' => 1, 'q'=> 1,
-    'r' => 2, 'w' => 2, 'x' => 2,
-    'd' => 3, 's' => 3, 'y' => 3,
-    'f' => 4, 't' => 4,
-    'a' => 5, 'm' => 5,
-    'c' => 6, 'i' => 6, 'v' => 6,
-    'b' => 7, 'k' => 7, 'u' => 7,
-    'l' => 8, 'o' => 8, 'p' => 8,
-    'g' => 9, 'h' => 9, 'z' => 9,
-)
-
 function charToDigit(ch::Char)::UInt
     ch = lowercase(ch)
-    get(charDigits, ch) do
-        throw(DomainError(ch, "Not a letter"))
-    end
+    ch == 'e' && return 0
+    ch in ['j', 'n', 'q'] && return 1
+    ch in ['r', 'w', 'x'] && return 2
+    ch in ['d', 's', 'y'] && return 3
+    ch in ['f', 't'] && return 4
+    ch in ['a', 'm'] && return 5
+    ch in ['c', 'i', 'v'] && return 6
+    ch in ['b', 'k', 'u'] && return 7
+    ch in ['l', 'o', 'p'] && return 8
+    ch in ['g', 'h', 'z'] && return 9
+    throw(DomainError(ch, "Not a letter"))
 end
 
 function wordToNumber(word::String)::BigInt
