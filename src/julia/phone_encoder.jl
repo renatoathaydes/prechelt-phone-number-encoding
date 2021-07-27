@@ -8,29 +8,29 @@
 const emptyStrings = String[]
 
 function printTranslations(num, digits, start=1, words=String[])
-    if start > length(digits)
-       return println(num, ": ", join(words, " "))
-    end
-    foundWord = false
-    n = BigInt(1)
-    for i in start:length(digits)
-        n = n * 10 + nthDigit(digits, i)
-        for word in get(dict, n, emptyStrings)
-            foundWord = true
-            printTranslations(num, digits, i + 1, [words; word])
-        end
-    end
-    if !foundWord &&
-        !(!isempty(words) && length(words[end]) == 1 && isdigit(words[end][begin]))
-        printTranslations(num, digits, start + 1, [words; string(nthDigit(digits, start))])
-    end
+#     if start > length(digits)
+#        return println(num, ": ", join(words, " "))
+#     end
+#     foundWord = false
+#     n = BigInt(1)
+#     for i in start:length(digits)
+#         n = n * 10 + nthDigit(digits, i)
+#         for word in get(dict, n, emptyStrings)
+#             foundWord = true
+#             printTranslations(num, digits, i + 1, [words; word])
+#         end
+#     end
+#     if !foundWord &&
+#         !(!isempty(words) && length(words[end]) == 1 && isdigit(words[end][begin]))
+#         printTranslations(num, digits, start + 1, [words; string(nthDigit(digits, start))])
+#     end
 end
 
 function loadDictionary(file)::Dict{BigInt, Vector{String}}
     local dict = Dict{BigInt, Vector{String}}()
-    for word in eachline(file)
-        push!(get!(dict, wordToNumber(word)) do; String[] end, word)
-    end
+#     for word in eachline(file)
+#         push!(get!(dict, wordToNumber(word)) do; String[] end, word)
+#     end
     dict
 end
 
