@@ -11,7 +11,8 @@ set -e
 COMMANDS=(
   "java -cp build/java Main"          # Java 1
   "java -cp build/java Main2"         # Java 2
-  "sbcl --script src/lisp/main.lisp"  # Common Lisp
+  "sbcl --script src/lisp/main.lisp"  # Common Lisp (script)
+  "./lisp-phone-encoder"              # Common Lisp (binary)
   "./phone_encoder"                   # Rust
 )
 
@@ -24,6 +25,12 @@ echo "Compiling Rust sources"
 cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_encoder ../../../
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
 cd ../../..
+
+echo "Compiling Lisp sources"
+cd src/lisp
+sbcl --non-interactive --load build.lisp
+cp phone-encoder ../../lisp-phone-encoder
+cd ../..
 
 echo "Generating inputs"
 INPUTS=(phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
@@ -56,4 +63,4 @@ do
 done
 
 echo "Cleaning up"
-rm "${INPUTS[@]}" "$CHECK_FILE" phone_encoder benchmark_runner
+rm "${INPUTS[@]}" "$CHECK_FILE" phone_encoder benchmark_runner lisp-phone-encoder

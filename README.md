@@ -76,7 +76,16 @@ $ cargo build --release
 
 ### Lisp
 
-No compilation is required.
+Compilation into a native binary executable is optional.
+
+To compile, run:
+
+```
+$ cd src/lisp
+$ sbcl --non-interactive --load build.lisp
+```
+
+This will create the binary named in `build.lisp`, i.e. `phone-encoder`.
 
 ## Running
 
@@ -98,8 +107,16 @@ $ ./phone_encoder dictionary.txt input.txt
 
 ### Lisp
 
+Script:
+
 ```
 $ sbcl --script src/lisp/main.lisp dictionary.txt input.txt
+```
+
+Binary:
+
+```
+$ ./phone-encoder src/lisp/main.lisp dictionary.txt input.txt
 ```
 
 ## Testing
