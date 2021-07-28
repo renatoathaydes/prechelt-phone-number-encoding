@@ -48,7 +48,7 @@ fn main() -> io::Result<()> {
             let digits: Vec<_> = num.chars()
                 .filter(|ch| ch.is_alphanumeric())
                 .collect();
-            print_translations(&num, &digits, 0, Vec::new(), &dict)?;
+            print_translations(&num, &digits, 0, Vec::new(), &dict);
         }
     }
     Ok(())
@@ -60,10 +60,10 @@ fn print_translations<'a>(
     start: usize,
     words: Vec<WordOrDigit<'a>>,
     dict: &'a Dictionary,
-) -> io::Result<()> {
+) {
     if start >= digits.len() {
         print_solution(num, &words);
-        return Ok(());
+        return;
     }
     let mut n = ONE.clone();
     let mut found_word = false;
@@ -74,12 +74,12 @@ fn print_translations<'a>(
                 found_word = true;
                 let mut partial_solution = words.clone();
                 partial_solution.push(WordOrDigit::Word(word));
-                print_translations(num, digits, i + 1, partial_solution, dict)?;
+                print_translations(num, digits, i + 1, partial_solution, dict);
             }
         }
     }
     if found_word {
-        return Ok(());
+        return;
     }
     let last_is_digit = match words.last() {
         Some(WordOrDigit::Digit(_)) => true,
@@ -89,9 +89,7 @@ fn print_translations<'a>(
         let mut partial_solution = words.clone();
         let digit = digits[start] as u8 - b'0';
         partial_solution.push(WordOrDigit::Digit(digit));
-        print_translations(num, digits, start + 1, partial_solution, dict)
-    } else {
-        Ok(())
+        print_translations(num, digits, start + 1, partial_solution, dict);
     }
 }
 
