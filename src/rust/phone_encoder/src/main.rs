@@ -45,8 +45,9 @@ fn main() -> io::Result<()> {
 
     for line in read_lines(input_file)? {
         let num = line?;
-        let digits: Vec<_> = num.chars()
-            .filter(|ch| ch.is_alphanumeric())
+        let digits: Vec<u8> = num.chars()
+            .filter(char::is_ascii_digit)
+            .map(|ch| ch as u8)
             .collect();
         print_translations(&num, &digits, 0, Vec::new(), &dict);
     }
@@ -55,7 +56,7 @@ fn main() -> io::Result<()> {
 
 fn print_translations<'a>(
     num: &str,
-    digits: &Vec<char>,
+    digits: &Vec<u8>,
     start: usize,
     words: Vec<WordOrDigit<'a>>,
     dict: &'a Dictionary,
@@ -86,7 +87,7 @@ fn print_translations<'a>(
     };
     if !last_is_digit {
         let mut partial_solution = words.clone();
-        let digit = digits[start] as u8 - b'0';
+        let digit = digits[start] - b'0';
         partial_solution.push(WordOrDigit::Digit(digit));
         print_translations(num, digits, start + 1, partial_solution, dict);
     }
@@ -139,7 +140,7 @@ fn word_to_number(word: &str) -> BigUint {
     n
 }
 
-fn nth_digit(digits: &Vec<char>, i: usize) -> BigUint {
+fn nth_digit(digits: &Vec<u8>, i: usize) -> BigUint {
     let ch = digits.get(i).expect("index out of bounds");
     ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
 }
