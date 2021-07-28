@@ -5,15 +5,7 @@ use std::io::{self, BufRead};
 use std::path::Path;
 use std::fmt::{self, Display, Formatter};
 
-use lazy_static::lazy_static;
-use num_bigint::{BigUint, ToBigUint};
-
 type Dictionary = HashMap<Vec<u8>, Vec<String>>;
-
-lazy_static! {
-    static ref ONE: BigUint = 1.to_biguint().unwrap();
-    static ref TEN: BigUint =10.to_biguint().unwrap();
-}
 
 #[derive(Debug, Copy, Clone)]
 enum WordOrDigit<'a> {
@@ -133,11 +125,6 @@ fn word_to_number(word: &str) -> Vec<u8> {
         .map(char_to_digit)
         .map(|d| d + b'0')
         .collect()
-}
-
-fn nth_digit(digits: &[u8], i: usize) -> BigUint {
-    let ch = digits.get(i).expect("index out of bounds");
-    ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
 }
 
 fn char_to_digit(ch: char) -> u8 {
