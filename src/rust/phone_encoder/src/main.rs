@@ -49,31 +49,30 @@ fn main() -> io::Result<()> {
             .filter(char::is_ascii_digit)
             .map(|ch| ch as u8)
             .collect();
-        print_translations(&num, &digits, 0, &mut Vec::new(), &dict);
+        print_translations(&num, &digits, &mut Vec::new(), &dict);
     }
     Ok(())
 }
 
 fn print_translations<'a>(
     num: &str,
-    digits: &Vec<u8>,
-    start: usize,
+    digits: &[u8],
     words: &mut Vec<WordOrDigit<'a>>,
     dict: &'a Dictionary,
 ) {
-    if start >= digits.len() {
+    if digits.is_empty() {
         print_solution(num, &words);
         return;
     }
     let mut n = ONE.clone();
     let mut found_word = false;
-    for i in start..digits.len() {
+    for i in 0..digits.len() {
         n = &n * (&*TEN) + &nth_digit(digits, i);
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
                 words.push(WordOrDigit::Word(word));
-                print_translations(num, digits, i + 1, words, dict);
+                print_translations(num, &digits[i+1..], words, dict);
                 words.pop();
             }
         }
@@ -86,9 +85,9 @@ fn print_translations<'a>(
         _ => false,
     };
     if !last_is_digit {
-        let digit = digits[start] - b'0';
+        let digit = digits[0] - b'0';
         words.push(WordOrDigit::Digit(digit));
-        print_translations(num, digits, start + 1, words, dict);
+        print_translations(num, &digits[1..], words, dict);
         words.pop();
     }
 }
@@ -140,7 +139,7 @@ fn word_to_number(word: &str) -> BigUint {
     n
 }
 
-fn nth_digit(digits: &Vec<u8>, i: usize) -> BigUint {
+fn nth_digit(digits: &[u8], i: usize) -> BigUint {
     let ch = digits.get(i).expect("index out of bounds");
     ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
 }
