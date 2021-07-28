@@ -49,7 +49,7 @@ fn main() -> io::Result<()> {
             .filter(char::is_ascii_digit)
             .map(|ch| ch as u8)
             .collect();
-        print_translations(&num, &digits, 0, Vec::new(), &dict);
+        print_translations(&num, &digits, 0, &mut Vec::new(), &dict);
     }
     Ok(())
 }
@@ -58,7 +58,7 @@ fn print_translations<'a>(
     num: &str,
     digits: &Vec<u8>,
     start: usize,
-    words: Vec<WordOrDigit<'a>>,
+    words: &mut Vec<WordOrDigit<'a>>,
     dict: &'a Dictionary,
 ) {
     if start >= digits.len() {
@@ -72,9 +72,9 @@ fn print_translations<'a>(
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
-                let mut partial_solution = words.clone();
-                partial_solution.push(WordOrDigit::Word(word));
-                print_translations(num, digits, i + 1, partial_solution, dict);
+                words.push(WordOrDigit::Word(word));
+                print_translations(num, digits, i + 1, words, dict);
+                words.pop();
             }
         }
     }
@@ -86,10 +86,10 @@ fn print_translations<'a>(
         _ => false,
     };
     if !last_is_digit {
-        let mut partial_solution = words.clone();
         let digit = digits[start] - b'0';
-        partial_solution.push(WordOrDigit::Digit(digit));
-        print_translations(num, digits, start + 1, partial_solution, dict);
+        words.push(WordOrDigit::Digit(digit));
+        print_translations(num, digits, start + 1, words, dict);
+        words.pop();
     }
 }
 
