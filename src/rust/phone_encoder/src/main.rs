@@ -8,7 +8,7 @@ use std::fmt::{self, Display, Formatter};
 use lazy_static::lazy_static;
 use num_bigint::{BigUint, ToBigUint};
 
-type Dictionary = HashMap<BigUint, Vec<String>>;
+type Dictionary = HashMap<Vec<u8>, Vec<String>>;
 
 lazy_static! {
     static ref ONE: BigUint = 1.to_biguint().unwrap();
@@ -64,15 +64,14 @@ fn print_translations<'a>(
         print_solution(num, &words);
         return;
     }
-    let mut n = ONE.clone();
     let mut found_word = false;
     for i in 0..digits.len() {
-        n = &n * (&*TEN) + &nth_digit(digits, i);
-        if let Some(found_words) = dict.get(&n) {
+        let (key, rest_of_digits) = digits.split_at(i + 1);
+        if let Some(found_words) = dict.get(key) {
             for word in found_words {
                 found_word = true;
                 words.push(WordOrDigit::Word(word));
-                print_translations(num, &digits[i+1..], words, dict);
+                print_translations(num, rest_of_digits, words, dict);
                 words.pop();
             }
         }
@@ -128,14 +127,12 @@ fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     Ok(io::BufReader::new(file).lines())
 }
 
-fn word_to_number(word: &str) -> BigUint {
-    let mut n = ONE.clone();
-    for ch in word.chars() {
-        if ch.is_alphabetic() {
-            n = &n * (&*TEN) + &char_to_digit(ch);
-        }
-    }
-    n
+fn word_to_number(word: &str) -> Vec<u8> {
+    word.chars()
+        .filter(char::is_ascii_alphabetic)
+        .map(char_to_digit)
+        .map(|d| d + b'0')
+        .collect()
 }
 
 fn nth_digit(digits: &[u8], i: usize) -> BigUint {
