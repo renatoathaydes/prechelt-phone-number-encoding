@@ -44,12 +44,11 @@ fn main() -> io::Result<()> {
     let dict = load_dict(words_file)?;
 
     for line in read_lines(input_file)? {
-        if let Ok(num) = line {
-            let digits: Vec<_> = num.chars()
-                .filter(|ch| ch.is_alphanumeric())
-                .collect();
-            print_translations(&num, &digits, 0, Vec::new(), &dict);
-        }
+        let num = line?;
+        let digits: Vec<_> = num.chars()
+            .filter(|ch| ch.is_alphanumeric())
+            .collect();
+        print_translations(&num, &digits, 0, Vec::new(), &dict);
     }
     Ok(())
 }
@@ -114,11 +113,10 @@ fn load_dict(words_file: String) -> io::Result<Dictionary> {
     let mut dict = HashMap::with_capacity(100);
     let words = read_lines(words_file)?;
     for line in words {
-        if let Ok(word) = line {
-            let key = word_to_number(&word);
-            let words = dict.entry(key).or_insert_with(|| Vec::new());
-            words.push(word);
-        }
+        let word = line?;
+        let key = word_to_number(&word);
+        let words = dict.entry(key).or_insert_with(|| Vec::new());
+        words.push(word);
     }
     Ok(dict)
 }
