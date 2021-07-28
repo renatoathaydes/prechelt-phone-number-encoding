@@ -3,6 +3,7 @@ use std::env::args;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
+use std::fmt::{self, Display, Formatter};
 
 use lazy_static::lazy_static;
 use num_bigint::{BigUint, ToBigUint};
@@ -13,6 +14,22 @@ lazy_static! {
     static ref ONE: BigUint = 1.to_biguint().unwrap();
     static ref TEN: BigUint =10.to_biguint().unwrap();
 }
+
+#[derive(Debug, Copy, Clone)]
+enum WordOrDigit<'a> {
+    Word(&'a str),
+    Digit(u8),
+}
+
+impl Display for WordOrDigit<'_> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            WordOrDigit::Word(s) => s.fmt(formatter),
+            WordOrDigit::Digit(d) => d.fmt(formatter),
+        }
+    }
+}
+
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
@@ -37,12 +54,12 @@ fn main() -> io::Result<()> {
     Ok(())
 }
 
-fn print_translations(
+fn print_translations<'a>(
     num: &str,
     digits: &Vec<char>,
     start: usize,
-    words: Vec<&String>,
-    dict: &Dictionary,
+    words: Vec<WordOrDigit<'a>>,
+    dict: &'a Dictionary,
 ) -> io::Result<()> {
     if start >= digits.len() {
         print_solution(num, &words);
@@ -56,22 +73,29 @@ fn print_translations(
             for word in found_words {
                 found_word = true;
                 let mut partial_solution = words.clone();
-                partial_solution.push(word);
+                partial_solution.push(WordOrDigit::Word(word));
                 print_translations(num, digits, i + 1, partial_solution, dict)?;
             }
         }
     }
-    if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
+    if found_word {
+        return Ok(());
+    }
+    let last_is_digit = match words.last() {
+        Some(WordOrDigit::Digit(_)) => true,
+        _ => false,
+    };
+    if !last_is_digit {
         let mut partial_solution = words.clone();
-        let digit = nth_digit(digits, start).to_string();
-        partial_solution.push(&digit);
+        let digit = digits[start] as u8 - b'0';
+        partial_solution.push(WordOrDigit::Digit(digit));
         print_translations(num, digits, start + 1, partial_solution, dict)
     } else {
         Ok(())
     }
 }
 
-fn print_solution(num: &str, words: &Vec<&String>) {
+fn print_solution(num: &str, words: &[WordOrDigit<'_>]) {
     // do a little gymnastics here to avoid allocating a big string just for printing it
     print!("{}", num);
     if words.is_empty() {
@@ -122,10 +146,6 @@ fn word_to_number(word: &str) -> BigUint {
 fn nth_digit(digits: &Vec<char>, i: usize) -> BigUint {
     let ch = digits.get(i).expect("index out of bounds");
     ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
-}
-
-fn is_digit(string: &str) -> bool {
-    string.len() == 1 && string.chars().next().unwrap().is_digit(10)
 }
 
 fn char_to_digit(ch: char) -> u32 {
