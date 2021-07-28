@@ -110,12 +110,11 @@ fn print_solution(num: &str, words: &[WordOrDigit<'_>]) {
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
-    let mut dict = HashMap::with_capacity(100);
-    let words = read_lines(words_file)?;
-    for line in words {
+    let mut dict: Dictionary = HashMap::with_capacity(100);
+    for line in read_lines(words_file)? {
         let word = line?;
         let key = word_to_number(&word);
-        let words = dict.entry(key).or_insert_with(|| Vec::new());
+        let words = dict.entry(key).or_default();
         words.push(word);
     }
     Ok(dict)
@@ -144,7 +143,7 @@ fn nth_digit(digits: &[u8], i: usize) -> BigUint {
     ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
 }
 
-fn char_to_digit(ch: char) -> u32 {
+fn char_to_digit(ch: char) -> u8 {
     match ch.to_ascii_lowercase() {
         'e' => 0,
         'j' | 'n' | 'q' => 1,
