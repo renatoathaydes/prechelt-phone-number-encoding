@@ -1,8 +1,11 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.math.BigInteger;
-import java.util.*;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -29,7 +32,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
  * @author Renato Athaydes
  */
 final class Main2 {
-    public static void main( String[] args ) throws IOException {
+    public static void main( String[] args ) throws IOException, InterruptedException {
         var words = new BufferedReader( new FileReader(
                 args.length > 0 ? args[ 0 ] : "tests/words.txt", US_ASCII ) ).lines();
 
@@ -37,107 +40,123 @@ final class Main2 {
 
         new BufferedReader( new FileReader(
                 args.length > 1 ? args[ 1 ] : "tests/numbers.txt", US_ASCII )
-        ).lines().forEach( num -> encoder.encode( num,
-                ( phone, solution ) -> System.out.println( phone + ": " + solution ) ) );
+        ).lines().forEach( encoder::encode );
     }
 }
 
 final class PhoneNumberEncoder2 {
-    private final Map<BigInteger, List<String>> dict;
+    private final Map<ByteBuffer, List<String>> dict;
 
     PhoneNumberEncoder2( Stream<String> words ) {
         dict = loadDictionary( words );
     }
 
-    void encode( String phone, BiConsumer<String, String> onSolution ) {
-        printTranslations( phone, removeIfNotLetterOrDigit( phone.toCharArray() ), 0, List.of(), onSolution );
+    void encode( String phone ) {
+        printTranslations( phone, removeIfNotLetterOrDigit( phone.toCharArray() ), 0, new ArrayList<>() );
     }
 
-    private char[] removeIfNotLetterOrDigit( char[] chars ) {
+    private byte[] removeIfNotLetterOrDigit( char[] chars ) {
         var finalLength = 0;
         for ( char c : chars ) {
             if ( Character.isLetterOrDigit( c ) ) finalLength++;
         }
-        char[] result = new char[ finalLength ];
+        byte[] result = new byte[ finalLength ];
         var i = 0;
         for ( char c : chars ) {
             if ( Character.isLetterOrDigit( c ) ) {
-                result[ i ] = c;
+                result[ i ] = ( byte ) c;
                 i++;
             }
         }
         return result;
     }
 
-    private void printTranslations( String num, char[] digits, int start, List<String> words, BiConsumer<String, String> onSolution ) {
+    private void printTranslations( String num, byte[] digits, int start, List<String> words ) {
         if ( start >= digits.length ) {
-            onSolution.accept( num, String.join( " ", words ) );
+            printSolution( num, words );
             return;
         }
         var foundWord = false;
-        var n = BigInteger.ONE;
+        var bytes = ByteBuffer.allocate( digits.length - start );
+        toReadState( bytes );
         for ( int i = start; i < digits.length; i++ ) {
-            n = n.multiply( BigInteger.TEN ).add( BigInteger.valueOf( nthDigit( digits, i ) ) );
-            List<String> foundWords = dict.get( n );
+            bytes = toWriteState( bytes ).put( nthDigit( digits, i ) );
+            List<String> foundWords = dict.get( toReadState( bytes ) );
             if ( foundWords != null ) {
                 foundWord = true;
                 for ( String word : foundWords ) {
-                    printTranslations( num, digits, i + 1, append( words, word ), onSolution );
+                    words.add( word );
+                    printTranslations( num, digits, i + 1, words );
+                    words.remove( words.size() - 1 );
                 }
             }
         }
         if ( !foundWord && !isLastItemDigit( words ) ) {
-            printTranslations( num, digits, start + 1,
-                    append( words, Integer.toString( nthDigit( digits, start ) ) ), onSolution );
+            words.add( Integer.toString( nthDigit( digits, start ) ) );
+            printTranslations( num, digits, start + 1, words );
+            words.remove( words.size() - 1 );
         }
     }
 
-    private static Map<BigInteger, List<String>> loadDictionary( Stream<String> words ) {
-        var table = new HashMap<BigInteger, List<String>>( 100 );
+    private void printSolution( String num, List<String> words ) {
+        // writing it out by invoking println several times like Rust does is counter-productive
+        System.out.println( num + ": " + String.join( " ", words ) );
+    }
+
+    private static Map<ByteBuffer, List<String>> loadDictionary( Stream<String> words ) {
+        var table = new HashMap<ByteBuffer, List<String>>( 100 );
         words.forEach( word -> table.computeIfAbsent( wordToNumber( word ),
                 ( ignore ) -> new ArrayList<>() ).add( word ) );
         return table;
     }
 
     private boolean isLastItemDigit( List<String> words ) {
-        return !words.isEmpty() && words.get( words.size() - 1 ).matches( "[0-9]" );
+        if ( words.isEmpty() ) return false;
+        var lastWord = words.get( words.size() - 1 );
+        return lastWord.length() == 1 && Character.isDigit( lastWord.chars().sum() );
     }
 
-    private static BigInteger wordToNumber( String word ) {
-        var n = BigInteger.ONE;
+    private static ByteBuffer wordToNumber( String word ) {
+        ByteBuffer bytes = ByteBuffer.allocate( word.length() );
         for ( char c : word.toCharArray() ) {
             if ( Character.isLetter( c ) ) {
-                n = n.multiply( BigInteger.TEN ).add( BigInteger.valueOf( charToDigit( c ) ) );
+                bytes.put( charToDigit( c ) );
             }
         }
-        return n;
+        return toReadState( bytes );
     }
 
-    private static int nthDigit( char[] digits, int n ) {
-        return digits[ n ] - ( int ) '0';
+    private static ByteBuffer toReadState( ByteBuffer bytes ) {
+        bytes.limit( bytes.position() );
+        bytes.position( 0 );
+        return bytes;
     }
 
-    static int charToDigit( char c ) {
+    private static ByteBuffer toWriteState( ByteBuffer bytes ) {
+        var pos = bytes.limit();
+        bytes.limit( bytes.capacity() );
+        bytes.position( pos );
+        return bytes;
+    }
+
+    private static byte nthDigit( byte[] digits, int n ) {
+        return ( byte ) ( digits[ n ] - ( byte ) '0' );
+    }
+
+    static byte charToDigit( char c ) {
         return switch ( Character.toLowerCase( c ) ) {
-            case 'e' -> 0;
-            case 'j', 'n', 'q' -> 1;
-            case 'r', 'w', 'x' -> 2;
-            case 'd', 's', 'y' -> 3;
-            case 'f', 't' -> 4;
-            case 'a', 'm' -> 5;
-            case 'c', 'i', 'v' -> 6;
-            case 'b', 'k', 'u' -> 7;
-            case 'l', 'o', 'p' -> 8;
-            case 'g', 'h', 'z' -> 9;
+            case 'e' -> ( byte ) 0;
+            case 'j', 'n', 'q' -> ( byte ) 1;
+            case 'r', 'w', 'x' -> ( byte ) 2;
+            case 'd', 's', 'y' -> ( byte ) 3;
+            case 'f', 't' -> ( byte ) 4;
+            case 'a', 'm' -> ( byte ) 5;
+            case 'c', 'i', 'v' -> ( byte ) 6;
+            case 'b', 'k', 'u' -> ( byte ) 7;
+            case 'l', 'o', 'p' -> ( byte ) 8;
+            case 'g', 'h', 'z' -> ( byte ) 9;
             default -> throw new RuntimeException( "Invalid char: " + c );
         };
-    }
-
-    static <T> List<T> append( List<T> list, T item ) {
-        var result = new ArrayList<T>( list.size() + 1 );
-        result.addAll( list );
-        result.add( item );
-        return Collections.unmodifiableList( result );
     }
 
 }
