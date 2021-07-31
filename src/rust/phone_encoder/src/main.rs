@@ -16,27 +16,23 @@ type Dictionary = HashMap<BigUint, Vec<String>>;
 /// due to the very different natures of Lisp and Rust.
 fn main() -> io::Result<()> {
     // drop itself from args
-    let mut args: Vec<_> = args().skip(1).collect();
-    let words_file: String = if !args.is_empty() { args.remove(0) } else { "tests/words.txt".into() };
-    let input_file: String = if !args.is_empty() { args.remove(0) } else { "tests/numbers.txt".into() };
+    let mut args = args().skip(1);
+    let words_file = args.next().unwrap_or_else(|| "tests/words.txt".into());
+    let input_file = args.next().unwrap_or_else(|| "tests/numbers.txt".into());
 
     let dict = load_dict(words_file)?;
 
     let mut words = Vec::new();
-    for line in read_lines(input_file)? {
-        if let Ok(num) = line {
-            let digits: Vec<_> = num.chars()
-                .filter(|ch| ch.is_alphanumeric())
-                .collect();
-            print_translations(&num, &digits, 0, &mut words, &dict)?;
-        }
+    for num in read_lines(input_file)?.flatten() {
+        let digits: Vec<_> = num.chars().filter(|ch| ch.is_digit(10)).collect();
+        print_translations(&num, &digits, 0, &mut words, &dict)?;
     }
     Ok(())
 }
 
 fn print_translations<'dict>(
     num: &str,
-    digits: &Vec<char>,
+    digits: &[char],
     start: usize,
     words: &mut Vec<&'dict str>,
     dict: &'dict Dictionary,
@@ -68,32 +64,20 @@ fn print_translations<'dict>(
     Ok(())
 }
 
-fn print_solution(num: &str, words: &Vec<&str>) {
-    // do a little gymnastics here to avoid allocating a big string just for printing it
-    print!("{}", num);
-    if words.is_empty() {
-        println!(":");
-        return;
+fn print_solution(num: &str, words: &[&str]) {
+    print!("{}:", num);
+    for word in words {
+        print!(" {}", word);
     }
-    print!(": ");
-    let (head, tail) = words.split_at(words.len() - 1);
-    for word in head {
-        print!("{} ", word);
-    }
-    for word in tail { // only last word in tail
-        println!("{}", word);
-    }
+    println!();
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
     let mut dict = HashMap::with_capacity(100);
-    let words = read_lines(words_file)?;
-    for line in words {
-        if let Ok(word) = line {
-            let key = word_to_number(&word);
-            let words = dict.entry(key).or_insert_with(|| Vec::new());
-            words.push(word);
-        }
+    for word in read_lines(words_file)?.flatten() {
+        let key = word_to_number(&word);
+        let words = dict.entry(key).or_insert_with(Vec::new);
+        words.push(word);
     }
     Ok(dict)
 }
@@ -101,7 +85,9 @@ fn load_dict(words_file: String) -> io::Result<Dictionary> {
 // The output is wrapped in a Result to allow matching on errors
 // Returns an Iterator to the Reader of the lines of the file.
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-    where P: AsRef<Path>, {
+    where
+        P: AsRef<Path>,
+{
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
