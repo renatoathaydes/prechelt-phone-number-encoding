@@ -18,8 +18,8 @@ COMMANDS=(
   "java -cp build/java Main2"         # Java 2
   "sbcl --script src/lisp/main.lisp"  # Common Lisp
   "./phone_encoder"                   # Rust
-  "src/dart/phone-encoder/bin/phone_encoder.exe" # Dart
-  "julia src/julia/phone_encoder.jl"  # Julia
+#  "src/dart/phone-encoder/bin/phone_encoder.exe" # Dart
+#  "julia src/julia/phone_encoder.jl"  # Julia
 )
 
 echo "Compiling Java sources"
@@ -37,13 +37,16 @@ cd src/dart/phone-encoder && dart compile exe bin/phone_encoder.dart
 cd ../../..
 
 echo "Generating inputs"
-INPUTS=(phones_100.txt phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
+INPUTS=(phones_2000.txt phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
 rm "${INPUTS[@]}" > /dev/null 2>&1 || true
-java -cp "build/util" util.GeneratePhoneNumbers 20 > phones_100.txt
+java -cp "build/util" util.GeneratePhoneNumbers 2000 false 12 > phones_2000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 1000 > phones_1000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 10000 > phones_10_000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 50000 > phones_50_000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 100000 "true" > phones_100_000_with_empty.txt
+
+# a large phone number (length 23) for use with the large dictionary
+echo  "91760687651618841752033" > phones_1.txt
 
 CHECK_FILE="proc_out.txt"
 DEFAULT_INPUT="input.txt"
@@ -68,8 +71,11 @@ do
 
   # final run with very large dictionary
   # shellcheck disable=SC2086
-  ./benchmark_runner $CMD words.txt phones_100.txt
+  ./benchmark_runner $CMD words.txt phones_2000.txt
+
+  # another run with very large dictionary and one single large phone number
+  ./benchmark_runner $CMD words.txt phones_1.txt
 done
 
 echo "Cleaning up"
-rm "${INPUTS[@]}" "$CHECK_FILE" phone_encoder benchmark_runner
+rm "${INPUTS[@]}" "$CHECK_FILE" phone_encoder benchmark_runner phones_1.txt
