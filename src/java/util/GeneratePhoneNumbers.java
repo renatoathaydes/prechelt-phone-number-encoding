@@ -16,6 +16,7 @@ public class GeneratePhoneNumbers {
     public static void main( String[] args ) {
         var count = args.length == 0 ? 1000 : Integer.parseInt( args[ 0 ] );
         var allowEmpty = args.length > 1 ? Boolean.parseBoolean( args[ 1 ] ) : false;
+        var maxLength = args.length > 2 ? Integer.parseInt(args[2]) : 50;
 
         /*
         Example phone numbers used in study:
@@ -34,12 +35,12 @@ public class GeneratePhoneNumbers {
 
         // generate 1000 numbers
         IntStream.range( 0, count ).mapToObj( ignore ->
-                nextPhoneNumber( random, inputChars, allowEmpty )
+                nextPhoneNumber( random, inputChars, allowEmpty, maxLength )
         ).forEach( System.out::println );
     }
 
-    private static String nextPhoneNumber( Random random, char[] inputChars, boolean allowEmpty ) {
-        var phoneLength = random.nextInt( 50 ) + 1;
+    private static String nextPhoneNumber( Random random, char[] inputChars, boolean allowEmpty, int maxLength ) {
+        var phoneLength = random.nextInt( maxLength ) + 1;
         var builder = new StringBuilder( phoneLength );
         while ( true ) {
             for ( var i = 0; i < phoneLength; i++ ) {
