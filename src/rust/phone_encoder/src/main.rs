@@ -4,15 +4,9 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use lazy_static::lazy_static;
 use num_bigint::{BigUint, ToBigUint};
 
 type Dictionary = HashMap<BigUint, Vec<String>>;
-
-lazy_static! {
-    static ref ONE: BigUint = 1.to_biguint().unwrap();
-    static ref TEN: BigUint =10.to_biguint().unwrap();
-}
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
@@ -48,10 +42,11 @@ fn print_translations(
         print_solution(num, &words);
         return Ok(());
     }
-    let mut n = ONE.clone();
+    let mut n = 1u8.into();
     let mut found_word = false;
     for i in start..digits.len() {
-        n = &n * (&*TEN) + &nth_digit(digits, i);
+        n *= 10u8;
+        n += nth_digit(digits, i);
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
@@ -110,11 +105,10 @@ fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 }
 
 fn word_to_number(word: &str) -> BigUint {
-    let mut n = ONE.clone();
-    for ch in word.chars() {
-        if ch.is_alphabetic() {
-            n = &n * (&*TEN) + &char_to_digit(ch);
-        }
+    let mut n = 1u8.into();
+    for digit in word.chars().filter_map(char_to_digit) {
+        n *= 10u8;
+        n += digit;
     }
     n
 }
@@ -128,8 +122,8 @@ fn is_digit(string: &str) -> bool {
     string.len() == 1 && string.chars().next().unwrap().is_digit(10)
 }
 
-fn char_to_digit(ch: char) -> u32 {
-    match ch.to_ascii_lowercase() {
+fn char_to_digit(ch: char) -> Option<u8> {
+    Some(match ch.to_ascii_lowercase() {
         'e' => 0,
         'j' | 'n' | 'q' => 1,
         'r' | 'w' | 'x' => 2,
@@ -140,6 +134,6 @@ fn char_to_digit(ch: char) -> u32 {
         'b' | 'k' | 'u' => 7,
         'l' | 'o' | 'p' => 8,
         'g' | 'h' | 'z' => 9,
-        _ => panic!("invalid input: not a digit: {}", ch)
-    }
+        _ => return None,
+    })
 }
