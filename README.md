@@ -81,6 +81,13 @@ No compilation is required.
 
 ## Dart
 
+The libraries must be downloaded before executing by running:
+
+```
+$ cd src/dart/phone-encoder
+$ dart pub get
+```
+
 Compilation is optional, but can be done as follows:
 
 ```
