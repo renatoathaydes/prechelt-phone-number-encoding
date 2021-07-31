@@ -8,6 +8,11 @@ set -e
 # If compilation is required, also add instructions to do that before "Generating INPUTS"
 #
 
+if [ ! -f words.txt ]; then
+  echo "Downloading English Words Dictionary."
+  ./download_english_words.sh
+fi
+
 COMMANDS=(
   "java -cp build/java Main"          # Java 1
   "java -cp build/java Main2"         # Java 2
@@ -32,8 +37,9 @@ cd src/dart/phone-encoder && dart pub get && dart compile exe bin/phone_encoder.
 cd ../../..
 
 echo "Generating inputs"
-INPUTS=(phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
+INPUTS=(phones_100.txt phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
 rm "${INPUTS[@]}" > /dev/null 2>&1 || true
+java -cp "build/util" util.GeneratePhoneNumbers 20 > phones_100.txt
 java -cp "build/util" util.GeneratePhoneNumbers 1000 > phones_1000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 10000 > phones_10_000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 50000 > phones_50_000.txt
@@ -59,6 +65,10 @@ do
   echo "===> $CMD"
   # shellcheck disable=SC2086
   for file in "${INPUTS[@]}"; do ./benchmark_runner $CMD $DICTIONARY "$file"; done;
+
+  # final run with very large dictionary
+  # shellcheck disable=SC2086
+  ./benchmark_runner $CMD words.txt phones_100.txt
 done
 
 echo "Cleaning up"
