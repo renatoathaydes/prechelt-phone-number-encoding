@@ -32,6 +32,5 @@
       </library>
     </orderEntry>
     <orderEntry type="library" name="Dart SDK" level="project" />
-    <orderEntry type="library" name="Dart Packages" level="project" />
   </component>
 </module>

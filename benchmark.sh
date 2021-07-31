@@ -28,7 +28,7 @@ cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_r
 cd ../../..
 
 echo "Compiling Dart sources"
-cd src/dart/phone-encoder && dart compile exe bin/phone_encoder.dart
+cd src/dart/phone-encoder && dart pub get && dart compile exe bin/phone_encoder.dart
 cd ../../..
 
 echo "Generating inputs"
