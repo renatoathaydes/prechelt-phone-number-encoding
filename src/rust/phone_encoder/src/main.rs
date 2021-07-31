@@ -3,12 +3,25 @@ use std::env::args;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
+use std::fmt::{self, Display, Formatter};
 
-use num_bigint::{BigUint};
+type Dictionary = HashMap<Vec<u8>, Vec<String>>;
 
-static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+#[derive(Debug, Copy, Clone)]
+enum WordOrDigit<'a> {
+    Word(&'a str),
+    Digit(u8),
+}
 
-type Dictionary = HashMap<BigUint, Vec<String>>;
+impl Display for WordOrDigit<'_> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            WordOrDigit::Word(s) => s.fmt(formatter),
+            WordOrDigit::Digit(d) => d.fmt(formatter),
+        }
+    }
+}
+
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
@@ -16,67 +29,83 @@ type Dictionary = HashMap<BigUint, Vec<String>>;
 /// due to the very different natures of Lisp and Rust.
 fn main() -> io::Result<()> {
     // drop itself from args
-    let mut args = args().skip(1);
-    let words_file = args.next().unwrap_or_else(|| "tests/words.txt".into());
-    let input_file = args.next().unwrap_or_else(|| "tests/numbers.txt".into());
+    let mut args: Vec<_> = args().skip(1).collect();
+    let words_file: String = if !args.is_empty() { args.remove(0) } else { "tests/words.txt".into() };
+    let input_file: String = if !args.is_empty() { args.remove(0) } else { "tests/numbers.txt".into() };
 
     let dict = load_dict(words_file)?;
 
-    let mut words = Vec::new();
-    for num in read_lines(input_file)?.flatten() {
-        let digits: Vec<_> = num.chars().filter(|ch| ch.is_digit(10)).collect();
-        print_translations(&num, &digits, 0, &mut words, &dict)?;
+    for line in read_lines(input_file)? {
+        let num = line?;
+        let digits: Vec<u8> = num.chars()
+            .filter(char::is_ascii_digit)
+            .map(|ch| ch as u8)
+            .collect();
+        print_translations(&num, &digits, &mut Vec::new(), &dict);
     }
     Ok(())
 }
 
-fn print_translations<'dict>(
+fn print_translations<'a>(
     num: &str,
-    digits: &[char],
-    start: usize,
-    words: &mut Vec<&'dict str>,
-    dict: &'dict Dictionary,
-) -> io::Result<()> {
-    if start >= digits.len() {
-        print_solution(num, words);
-        return Ok(());
+    digits: &[u8],
+    words: &mut Vec<WordOrDigit<'a>>,
+    dict: &'a Dictionary,
+) {
+    if digits.is_empty() {
+        print_solution(num, &words);
+        return;
     }
-    let mut n = 1u8.into();
     let mut found_word = false;
-    for i in start..digits.len() {
-        n *= 10u8;
-        n += nth_digit(digits, i);
-        if let Some(found_words) = dict.get(&n) {
+    for i in 0..digits.len() {
+        let (key, rest_of_digits) = digits.split_at(i + 1);
+        if let Some(found_words) = dict.get(key) {
             for word in found_words {
                 found_word = true;
-                words.push(word);
-                print_translations(num, digits, i + 1, words, dict)?;
+                words.push(WordOrDigit::Word(word));
+                print_translations(num, rest_of_digits, words, dict);
                 words.pop();
             }
         }
     }
-    if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
-        let digit = nth_digit(digits, start);
-        words.push(DIGITS[usize::from(digit)]);
-        print_translations(num, digits, start + 1, words, dict)?;
+    if found_word {
+        return;
+    }
+    let last_is_digit = match words.last() {
+        Some(WordOrDigit::Digit(_)) => true,
+        _ => false,
+    };
+    if !last_is_digit {
+        let digit = digits[0] - b'0';
+        words.push(WordOrDigit::Digit(digit));
+        print_translations(num, &digits[1..], words, dict);
         words.pop();
     }
-    Ok(())
 }
 
-fn print_solution(num: &str, words: &[&str]) {
-    print!("{}:", num);
-    for word in words {
-        print!(" {}", word);
+fn print_solution(num: &str, words: &[WordOrDigit<'_>]) {
+    // do a little gymnastics here to avoid allocating a big string just for printing it
+    print!("{}", num);
+    if words.is_empty() {
+        println!(":");
+        return;
     }
-    println!();
+    print!(": ");
+    let (head, tail) = words.split_at(words.len() - 1);
+    for word in head {
+        print!("{} ", word);
+    }
+    for word in tail { // only last word in tail
+        println!("{}", word);
+    }
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
-    let mut dict = HashMap::with_capacity(100);
-    for word in read_lines(words_file)?.flatten() {
+    let mut dict: Dictionary = HashMap::with_capacity(100);
+    for line in read_lines(words_file)? {
+        let word = line?;
         let key = word_to_number(&word);
-        let words = dict.entry(key).or_insert_with(Vec::new);
+        let words = dict.entry(key).or_default();
         words.push(word);
     }
     Ok(dict)
@@ -85,32 +114,21 @@ fn load_dict(words_file: String) -> io::Result<Dictionary> {
 // The output is wrapped in a Result to allow matching on errors
 // Returns an Iterator to the Reader of the lines of the file.
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-    where
-        P: AsRef<Path>,
-{
+    where P: AsRef<Path>, {
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
 
-fn word_to_number(word: &str) -> BigUint {
-    let mut n = 1u8.into();
-    for digit in word.chars().filter_map(char_to_digit) {
-        n *= 10u8;
-        n += digit;
-    }
-    n
+fn word_to_number(word: &str) -> Vec<u8> {
+    word.chars()
+        .filter(char::is_ascii_alphabetic)
+        .map(char_to_digit)
+        .map(|d| d + b'0')
+        .collect()
 }
 
-fn nth_digit(digits: &[char], i: usize) -> u8 {
-    digits[i] as u8 - b'0'
-}
-
-fn is_digit(string: &str) -> bool {
-    string.len() == 1 && string.chars().next().unwrap().is_digit(10)
-}
-
-fn char_to_digit(ch: char) -> Option<u8> {
-    Some(match ch.to_ascii_lowercase() {
+fn char_to_digit(ch: char) -> u8 {
+    match ch.to_ascii_lowercase() {
         'e' => 0,
         'j' | 'n' | 'q' => 1,
         'r' | 'w' | 'x' => 2,
@@ -121,6 +139,6 @@ fn char_to_digit(ch: char) -> Option<u8> {
         'b' | 'k' | 'u' => 7,
         'l' | 'o' | 'p' => 8,
         'g' | 'h' | 'z' => 9,
-        _ => return None,
-    })
+        _ => panic!("invalid input: not a digit: {}", ch)
+    }
 }
