@@ -4,7 +4,9 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use num_bigint::{BigUint, ToBigUint};
+use num_bigint::{BigUint};
+
+static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 type Dictionary = HashMap<BigUint, Vec<String>>;
 
@@ -20,26 +22,27 @@ fn main() -> io::Result<()> {
 
     let dict = load_dict(words_file)?;
 
+    let mut words = Vec::new();
     for line in read_lines(input_file)? {
         if let Ok(num) = line {
             let digits: Vec<_> = num.chars()
                 .filter(|ch| ch.is_alphanumeric())
                 .collect();
-            print_translations(&num, &digits, 0, Vec::new(), &dict)?;
+            print_translations(&num, &digits, 0, &mut words, &dict)?;
         }
     }
     Ok(())
 }
 
-fn print_translations(
+fn print_translations<'dict>(
     num: &str,
     digits: &Vec<char>,
     start: usize,
-    words: Vec<&String>,
-    dict: &Dictionary,
+    words: &mut Vec<&'dict str>,
+    dict: &'dict Dictionary,
 ) -> io::Result<()> {
     if start >= digits.len() {
-        print_solution(num, &words);
+        print_solution(num, words);
         return Ok(());
     }
     let mut n = 1u8.into();
@@ -50,23 +53,22 @@ fn print_translations(
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
-                let mut partial_solution = words.clone();
-                partial_solution.push(word);
-                print_translations(num, digits, i + 1, partial_solution, dict)?;
+                words.push(word);
+                print_translations(num, digits, i + 1, words, dict)?;
+                words.pop();
             }
         }
     }
     if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
-        let mut partial_solution = words.clone();
-        let digit = nth_digit(digits, start).to_string();
-        partial_solution.push(&digit);
-        print_translations(num, digits, start + 1, partial_solution, dict)
-    } else {
-        Ok(())
+        let digit = nth_digit(digits, start);
+        words.push(DIGITS[usize::from(digit)]);
+        print_translations(num, digits, start + 1, words, dict)?;
+        words.pop();
     }
+    Ok(())
 }
 
-fn print_solution(num: &str, words: &Vec<&String>) {
+fn print_solution(num: &str, words: &Vec<&str>) {
     // do a little gymnastics here to avoid allocating a big string just for printing it
     print!("{}", num);
     if words.is_empty() {
@@ -113,9 +115,8 @@ fn word_to_number(word: &str) -> BigUint {
     n
 }
 
-fn nth_digit(digits: &Vec<char>, i: usize) -> BigUint {
-    let ch = digits.get(i).expect("index out of bounds");
-    ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
+fn nth_digit(digits: &[char], i: usize) -> u8 {
+    digits[i] as u8 - b'0'
 }
 
 fn is_digit(string: &str) -> bool {
