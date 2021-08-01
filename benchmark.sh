@@ -32,9 +32,9 @@ cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_en
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
 cd ../../..
 
-echo "Compiling Dart sources"
-cd src/dart/phone-encoder && dart compile exe bin/phone_encoder.dart
-cd ../../..
+#echo "Compiling Dart sources"
+#cd src/dart/phone-encoder && dart compile exe bin/phone_encoder.dart
+#cd ../../..
 
 echo "Generating inputs"
 INPUTS=(phones_2000.txt phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
@@ -67,11 +67,11 @@ for CMD in "${COMMANDS[@]}"
 do
   echo "===> $CMD"
   # shellcheck disable=SC2086
-  for file in "${INPUTS[@]}"; do ./benchmark_runner $CMD $DICTIONARY "$file"; done;
+#  for file in "${INPUTS[@]}"; do ./benchmark_runner $CMD $DICTIONARY "$file"; done;
 
   # final run with very large dictionary
   # shellcheck disable=SC2086
-  ./benchmark_runner $CMD words.txt phones_2000.txt
+#  ./benchmark_runner $CMD words.txt phones_2000.txt
 
   # another run with very large dictionary and one single large phone number
   ./benchmark_runner $CMD words.txt phones_1.txt
