@@ -2,10 +2,12 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.stream.Stream;
 
@@ -37,10 +39,13 @@ final class Main2 {
                 args.length > 0 ? args[ 0 ] : "tests/words.txt", US_ASCII ) ).lines();
 
         var encoder = new PhoneNumberEncoder2( words );
+        encoder.start();
 
         new BufferedReader( new FileReader(
                 args.length > 1 ? args[ 1 ] : "tests/numbers.txt", US_ASCII )
         ).lines().forEach( encoder::encode );
+
+        encoder.close();
     }
 }
 
@@ -98,9 +103,48 @@ final class PhoneNumberEncoder2 {
         }
     }
 
+    private final ExecutorService service = Executors.newSingleThreadExecutor();
+    private final ConcurrentLinkedDeque<String> solutions = new ConcurrentLinkedDeque<>();
+    private final AtomicBoolean isClosed = new AtomicBoolean( false );
+
+    void start() {
+        service.submit( () -> {
+            while (!isClosed.get() || !solutions.isEmpty()) {
+                var s = solutions.poll();
+                if (s == null) {
+                    // nothing yet, wait a bit
+                    try {
+                        Thread.sleep( 10 );
+                    } catch ( InterruptedException e ) {
+                        e.printStackTrace();
+                        System.exit( 1 );
+                    }
+                } else {
+                    System.out.println( s );
+                }
+            }
+            System.err.println("Closing writer thread");
+        } );
+    }
+
+    void close() {
+        System.err.println( "Done computing solutions, waiting for printouts" );
+        isClosed.set( true );
+        long time = System.currentTimeMillis();
+        service.shutdown();
+        try {
+            if ( !service.awaitTermination( 5, TimeUnit.MINUTES ) ) {
+                throw new RuntimeException( "Timeout waiting for printouts" );
+            }
+        } catch ( InterruptedException e ) {
+            throw new RuntimeException( e );
+        }
+        System.err.println( "Finished printing out in " + ( System.currentTimeMillis() - time ) + "ms" );
+    }
+
     private void printSolution( String num, List<String> words ) {
-        // writing it out by invoking println several times like Rust does is counter-productive
-        System.out.println( num + ": " + String.join( " ", words ) );
+        var solution = num + ": " + String.join( " ", words );
+        solutions.add( solution );
     }
 
     private static Map<ByteBuffer, List<String>> loadDictionary( Stream<String> words ) {
