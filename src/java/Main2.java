@@ -1,6 +1,8 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -36,18 +38,24 @@ final class Main2 {
         var words = new BufferedReader( new FileReader(
                 args.length > 0 ? args[ 0 ] : "tests/words.txt", US_ASCII ) ).lines();
 
-        var encoder = new PhoneNumberEncoder2( words );
 
-        new BufferedReader( new FileReader(
-                args.length > 1 ? args[ 1 ] : "tests/numbers.txt", US_ASCII )
-        ).lines().forEach( encoder::encode );
+        var printer = new BufferedWriter( new OutputStreamWriter( System.out, US_ASCII ) );
+
+        try ( printer ) {
+            var encoder = new PhoneNumberEncoder2( words, printer );
+            new BufferedReader( new FileReader(
+                    args.length > 1 ? args[1] : "tests/numbers.txt", US_ASCII )
+            ).lines().forEach( encoder::encode );
+        }
     }
 }
 
 final class PhoneNumberEncoder2 {
     private final Map<ByteBuffer, List<String>> dict;
+    private final BufferedWriter printer;
 
-    PhoneNumberEncoder2( Stream<String> words ) {
+    PhoneNumberEncoder2(Stream<String> words, BufferedWriter printer) {
+        this.printer = printer;
         dict = loadDictionary( words );
     }
 
@@ -100,7 +108,12 @@ final class PhoneNumberEncoder2 {
 
     private void printSolution( String num, List<String> words ) {
         // writing it out by invoking println several times like Rust does is counter-productive
-        System.out.println( num + ": " + String.join( " ", words ) );
+        try {
+            printer.write( num + ": " + String.join( " ", words ) );
+            printer.write( '\n' );
+        } catch ( IOException e ) {
+            throw new RuntimeException( e );
+        }
     }
 
     private static Map<ByteBuffer, List<String>> loadDictionary( Stream<String> words ) {
