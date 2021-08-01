@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, Write, BufRead, BufWriter, StdoutLock};
 use std::path::Path;
 use std::fmt::{self, Display, Formatter};
 
@@ -35,13 +35,16 @@ fn main() -> io::Result<()> {
 
     let dict = load_dict(words_file)?;
 
+    let stdout = io::stdout();
+    let mut writer = BufWriter::new(stdout.lock());
+
     for line in read_lines(input_file)? {
         let num = line?;
         let digits: Vec<u8> = num.chars()
             .filter(char::is_ascii_digit)
             .map(|ch| ch as u8)
             .collect();
-        print_translations(&num, &digits, &mut Vec::new(), &dict);
+        print_translations(&num, &digits, &mut Vec::new(), &dict, &mut writer);
     }
     Ok(())
 }
@@ -51,9 +54,10 @@ fn print_translations<'a>(
     digits: &[u8],
     words: &mut Vec<WordOrDigit<'a>>,
     dict: &'a Dictionary,
+    writer: &mut BufWriter<StdoutLock>,
 ) {
     if digits.is_empty() {
-        print_solution(num, &words);
+        print_solution(num, &words, writer);
         return;
     }
     let mut found_word = false;
@@ -63,7 +67,7 @@ fn print_translations<'a>(
             for word in found_words {
                 found_word = true;
                 words.push(WordOrDigit::Word(word));
-                print_translations(num, rest_of_digits, words, dict);
+                print_translations(num, rest_of_digits, words, dict, writer);
                 words.pop();
             }
         }
@@ -78,26 +82,31 @@ fn print_translations<'a>(
     if !last_is_digit {
         let digit = digits[0] - b'0';
         words.push(WordOrDigit::Digit(digit));
-        print_translations(num, &digits[1..], words, dict);
+        print_translations(num, &digits[1..], words, dict, writer);
         words.pop();
     }
 }
 
-fn print_solution(num: &str, words: &[WordOrDigit<'_>]) {
+fn print_solution(
+    num: &str,
+    words: &[WordOrDigit<'_>],
+    writer: &mut BufWriter<StdoutLock>
+) {
     // do a little gymnastics here to avoid allocating a big string just for printing it
-    print!("{}", num);
+    write!(writer, "{}", num).unwrap();
     if words.is_empty() {
-        println!(":");
+        write!(writer, ":").unwrap();
         return;
     }
-    print!(": ");
+    write!(writer, ": ").unwrap();
     let (head, tail) = words.split_at(words.len() - 1);
     for word in head {
-        print!("{} ", word);
+        write!(writer, "{} ", word).unwrap();
     }
     for word in tail { // only last word in tail
-        println!("{}", word);
+        write!(writer, "{}", word).unwrap();
     }
+    write!(writer, "\n").unwrap();
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
