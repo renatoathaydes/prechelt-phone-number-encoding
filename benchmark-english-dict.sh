@@ -39,7 +39,7 @@ cd ../../..
 echo "Generating inputs"
 
 # check how input length affects runtime
-INPUTS2=(phones_1_len_5.txt phones_1_len_10.txt phones_1_len_15.txt phones_1_len_20.txt phones_1_len_25.txt phones_1_len_27.txt phones_1_len_28.txt phones_1_len_29.txt)
+INPUTS2=(phones_1_len_5.txt phones_1_len_10.txt phones_1_len_15.txt phones_1_len_20.txt phones_1_len_25.txt phones_1_len_27.txt phones_1_len_28.txt phones_1_len_29.txt phones_1_len_30.txt)
 echo  "91760" > phones_1_len_5.txt
 echo  "9176068765" > phones_1_len_10.txt
 echo  "917606876516188" > phones_1_len_15.txt
@@ -48,6 +48,7 @@ echo  "9176068765161884175203318" > phones_1_len_25.txt
 echo  "917606876516188417520331816" > phones_1_len_27.txt
 echo  "9176068765161884175203318165" > phones_1_len_28.txt
 echo  "91760687651618841752033181652" > phones_1_len_29.txt
+echo  "917606876516188417520331816522" > phones_1_len_30.txt
 
 CHECK_FILE="proc_out.txt"
 DEFAULT_INPUT="input.txt"
