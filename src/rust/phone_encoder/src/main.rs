@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::File;
-use std::io::{self, Write, BufRead, BufWriter, StdoutLock};
+use std::io::{self, Write, BufRead, BufWriter, StdoutLock, ErrorKind};
 use std::path::Path;
-use std::fmt::{self, Display, Formatter};
 
 type Dictionary = HashMap<Vec<u8>, Vec<String>>;
 
@@ -13,15 +12,34 @@ enum WordOrDigit<'a> {
     Digit(u8),
 }
 
-impl Display for WordOrDigit<'_> {
-    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            WordOrDigit::Word(s) => s.fmt(formatter),
-            WordOrDigit::Digit(d) => d.fmt(formatter),
-        }
+impl WordOrDigit<'_> {
+
+    #[inline]
+    fn write( &self, writer: &mut BufWriter<StdoutLock>, suffix: &str ) -> io::Result<()> {
+        let bytes = match self {
+            WordOrDigit::Word(w) => { w.as_bytes() },
+            WordOrDigit::Digit(d) => {
+                let digit = match d {
+                    0 => "0",
+                    1 => "1",
+                    2 => "2",
+                    3 => "3",
+                    4 => "4",
+                    5 => "5",
+                    6 => "6",
+                    7 => "7",
+                    8 => "8",
+                    9 => "9",
+                    _ => { return Err( io::Error::new( ErrorKind::InvalidInput, "Invalid digit" ) ); },
+                };
+                digit.as_bytes()
+            },
+        };
+        writer.write( bytes )?;
+        writer.write( suffix.as_bytes() )
+              .map(|_| () )
     }
 }
-
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
@@ -44,7 +62,7 @@ fn main() -> io::Result<()> {
             .filter(char::is_ascii_digit)
             .map(|ch| ch as u8)
             .collect();
-        print_translations(&num, &digits, &mut Vec::new(), &dict, &mut writer);
+        print_translations(&num, &digits, &mut Vec::new(), &dict, &mut writer)?;
     }
     Ok(())
 }
@@ -55,10 +73,9 @@ fn print_translations<'a>(
     words: &mut Vec<WordOrDigit<'a>>,
     dict: &'a Dictionary,
     writer: &mut BufWriter<StdoutLock>,
-) {
+) -> io::Result<()> {
     if digits.is_empty() {
-        print_solution(num, &words, writer);
-        return;
+        return print_solution(num, &words, writer);
     }
     let mut found_word = false;
     for i in 0..digits.len() {
@@ -67,13 +84,13 @@ fn print_translations<'a>(
             for word in found_words {
                 found_word = true;
                 words.push(WordOrDigit::Word(word));
-                print_translations(num, rest_of_digits, words, dict, writer);
+                print_translations(num, rest_of_digits, words, dict, writer)?;
                 words.pop();
             }
         }
     }
     if found_word {
-        return;
+        return Ok(());
     }
     let last_is_digit = match words.last() {
         Some(WordOrDigit::Digit(_)) => true,
@@ -82,31 +99,34 @@ fn print_translations<'a>(
     if !last_is_digit {
         let digit = digits[0] - b'0';
         words.push(WordOrDigit::Digit(digit));
-        print_translations(num, &digits[1..], words, dict, writer);
+        print_translations(num, &digits[1..], words, dict, writer)?;
         words.pop();
     }
+
+    Ok(())
 }
 
 fn print_solution(
     num: &str,
     words: &[WordOrDigit<'_>],
     writer: &mut BufWriter<StdoutLock>
-) {
+) -> io::Result<()> {
     // do a little gymnastics here to avoid allocating a big string just for printing it
-    write!(writer, "{}", num).unwrap();
+    writer.write( num.as_bytes() )?;
     if words.is_empty() {
-        write!(writer, ":").unwrap();
-        return;
+        writer.write( ":".as_bytes() )?;
+        return Ok(());
     }
-    write!(writer, ": ").unwrap();
+    writer.write( ": ".as_bytes())?;
     let (head, tail) = words.split_at(words.len() - 1);
     for word in head {
-        write!(writer, "{} ", word).unwrap();
+        word.write( writer, " " )?;
     }
     for word in tail { // only last word in tail
-        write!(writer, "{}", word).unwrap();
+        word.write( writer, "" )?;
     }
-    write!(writer, "\n").unwrap();
+    writer.write( "\n".as_bytes() )
+          .map(|_| () )
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
