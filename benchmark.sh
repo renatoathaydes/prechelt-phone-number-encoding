@@ -12,6 +12,7 @@ COMMANDS=(
   "java -cp build/java Main"          # Java 1
   "java -cp build/java Main2"         # Java 2
   "sbcl --script src/lisp/main.lisp"  # Common Lisp
+  "sbcl --script src/lisp/main-bpecsek.lisp"  # Common Lisp
   "./phone_encoder"                   # Rust
 )
 
