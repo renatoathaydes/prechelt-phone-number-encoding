@@ -56,7 +56,7 @@
   strings to integers would map R to 2 and ER to 02, which of course is
   the same integer as 2.  Therefore we prepend a 1 to every number, and R
   becomes 12 and ER becomes 102."
-  (declare (fixnum num start)
+  (declare (fixnum start)
            (simple-string digits))
   (if (>= start (length digits))
       (format t "~a:~{ ~a~}~%" num (reverse words))
