@@ -62,7 +62,7 @@
       (format t "~a:~{ ~a~}~%" num (reverse words))
       (let ((found-word nil)
             (n 1)) ; leading zero problem
-        (loop for i of-type fixnum from start below (length digits)
+        (loop for i from start below (length digits)
 	      do (setf n (logand #.(1- (ash 1 (integer-length most-positive-fixnum)))
 				 (+ (* 10 n) (nth-digit digits i))))
 		 (loop for word in (gethash n *dict*)
@@ -85,8 +85,7 @@
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
   (let ((n 1)) ; leading zero problem
-    (declare (fixnum n))
-    (loop for i of-type fixnum from 0 below (length word)
+    (loop for i from 0 below (length word)
           for ch of-type base-char = (char word i)
           do (when (alpha-char-p ch)
 	       (setf n (logand #.(1- (ash 1 (integer-length most-positive-fixnum)))
