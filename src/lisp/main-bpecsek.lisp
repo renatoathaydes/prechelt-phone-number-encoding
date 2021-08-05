@@ -35,8 +35,8 @@
   according to the rules of translation."
   (setf *dict* (load-dictionary dict dict-size))
   (with-open-file (in nums :external-format :ascii)
-    (loop for num  = (read-line in nil) while num
-          do (print-translations num (remove-if-not #'digit-char-p num)))))
+    (loop for num = (read-line in nil)
+	  while num do (print-translations num (remove-if-not #'digit-char-p num)))))
 
 (defun print-translations (num digits &optional (start 0) (words nil))
   "Print each possible translation of NUM into a string of words.  DIGITS
@@ -78,8 +78,8 @@
   each value is a list of words with that phone number."
   (with-open-file (in file :external-format :ascii)
       (loop with table = (make-hash-table :test #'eql :size size)
-            for  word  = (read-line in nil) while word
-            do (push word (gethash (word->number word) table))
+            for  word  = (read-line in nil)
+	    while word do (push word (gethash (word->number word) table))
             finally (return table))))
 
 (defun word->number (word)
