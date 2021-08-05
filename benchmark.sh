@@ -14,12 +14,12 @@ if [ ! -f words.txt ]; then
 fi
 
 COMMANDS=(
-  "java -cp build/java Main"          # Java 1
-  "java -cp build/java Main2"         # Java 2
-  "sbcl --script src/lisp/main.lisp"  # Common Lisp
+#  "java -cp build/java Main"          # Java 1
+#  "java -cp build/java Main2"         # Java 2
+#  "sbcl --script src/lisp/main.lisp"  # Common Lisp
   "./phone_encoder"                   # Rust
 #  "src/dart/phone-encoder/bin/phone_encoder.exe" # Dart
-#  "julia src/julia/phone_encoder.jl"  # Julia
+  "julia src/julia/phone_encoder.jl"  # Julia
 )
 
 echo "Compiling Java sources"
