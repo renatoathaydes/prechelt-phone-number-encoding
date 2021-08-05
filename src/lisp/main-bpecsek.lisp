@@ -6,7 +6,7 @@
 ;; Some optimisation here and there
 (declaim (optimize (speed 3) (debug 0) (safety 0)))
 
-(defvar *dict* nil
+(defglobal *dict* nil
   "A hash table mapping a phone number (integer) to a list of words from the
   input dictionary that produce that number.")
 
@@ -18,24 +18,24 @@
 (defun char->digit (ch)
   "Convert a character to a digit according to the phone number rules."
   (ecase (char-downcase ch)
-    ((#\e) 0)
+    ((#\e)         0)
     ((#\j #\n #\q) 1)
     ((#\r #\w #\x) 2)
     ((#\d #\s #\y) 3)
-    ((#\f #\t) 4)
-    ((#\a #\m) 5)
+    ((#\f #\t)     4)
+    ((#\a #\m)     5)
     ((#\c #\i #\v) 6)
     ((#\b #\k #\u) 7)
     ((#\l #\o #\p) 8)
     ((#\g #\h #\z) 9)))
 
 (defun main (&optional (dict "tests/words.txt") (nums "tests/numbers.txt") (dict-size 100))
-  "Read the input file ¨DICT and load it into *dict*.  Then for each line in
+  "Read the input file ¨DICT and load it into *dict*. Then for each line in
   NUMS, print all the translations of the number into a sequence of words,
   according to the rules of translation."
   (setf *dict* (load-dictionary dict dict-size))
-  (with-open-file (in nums)
-    (loop for num = (read-line in nil) while num
+  (with-open-file (in nums :external-format :ascii)
+    (loop for num  = (read-line in nil) while num
           do (print-translations num (remove-if-not #'digit-char-p num)))))
 
 (defun print-translations (num digits &optional (start 0) (words nil))
@@ -60,36 +60,36 @@
            (simple-string digits))
   (if (>= start (length digits))
       (format t "~a:~{ ~a~}~%" num (reverse words))
-      (let ((found-word nil)
-            (n 1)) ; leading zero problem
-        (loop for i from start below (length digits)
-	      do (setf n (logand #.(1- (ash 1 (integer-length most-positive-fixnum)))
-				 (+ (* 10 n) (nth-digit digits i))))
-		 (loop for word in (gethash n *dict*)
-		       do (setf found-word t)
-			  (print-translations num digits (1+ i) (cons word words))))
-        (when (and (not found-word) (not (numberp (first words))))
-          (print-translations num digits (+ start 1)
-                              (cons (nth-digit digits start) words))))))
+      (loop with found-word = nil
+            with n = 1 ; leading zero problem
+            for i from start below (length digits)
+	    do (setf n (logand #.(1- (ash 1 (integer-length most-positive-fixnum)))
+			       (+ (* 10 n) (nth-digit digits i))))
+	       (loop for word in (gethash n *dict*)
+		     do (setf found-word t)
+			(print-translations num digits (1+ i) (cons word words)))
+            finally (return (when (and (not found-word) (not (numberp (first words))))
+                              (print-translations num digits (1+ start)
+                                                  (cons (nth-digit digits start) words)))))))
 
 (defun load-dictionary (file size)
   "Create a hashtable from the file of words (one per line).  Takes a hint
   for the initial hashtable size.  Each key is the phone number for a word;
   each value is a list of words with that phone number."
-  (let ((table (make-hash-table :test #'eql :size size)))
-    (with-open-file (in file)
-      (loop for word = (read-line in nil) while word
-            do (push word (gethash (word->number word) table))))
-    table))
+  (with-open-file (in file :external-format :ascii)
+      (loop with table = (make-hash-table :test #'eql :size size)
+            for  word  = (read-line in nil) while word
+            do (push word (gethash (word->number word) table))
+            finally (return table))))
 
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
-  (let ((n 1)) ; leading zero problem
-    (loop for i from 0 below (length word)
-          for ch of-type base-char = (char word i)
-          do (when (alpha-char-p ch)
-	       (setf n (logand #.(1- (ash 1 (integer-length most-positive-fixnum)))
-			       (+ (* 10 n) (char->digit ch))))))
-    n))
+  (loop with n = 1 ; leading zero problem
+        for i from 0 below (length word)
+        for ch of-type base-char = (char word i)
+        do (when (alpha-char-p ch)
+	     (setf n (logand #.(1- (ash 1 (integer-length most-positive-fixnum)))
+			     (+ (* 10 n) (char->digit ch)))))
+        finally (return n)))
 
-(apply #'main (cdr sb-ext:*posix-argv*))
+(apply #'main #+sbcl (cdr sb-ext:*posix-argv*))
