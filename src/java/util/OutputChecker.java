@@ -55,7 +55,7 @@ public class OutputChecker {
 
     private static void check( String phone, String solution, HashSet<String> words,
                                AtomicInteger lineNumber, PhoneSolutions phoneSolutions ) {
-        var solutionParts = solution.split( " " );
+        var solutionParts = solution.split( "\s" );
         for ( String part : solutionParts ) {
             if ( !isDigit( part ) && !words.contains( part ) ) {
                 fail( lineNumber, "Solution contains word '" + part + "' which is not in dictionary: " + solution );
@@ -71,7 +71,6 @@ public class OutputChecker {
             phoneSolutions.setNewPhone( cleanPhone );
         }
         phoneSolutions.solutionsParts.add( Arrays.stream( solutionParts )
-                .map( OutputChecker::cleanSolution )
                 .toArray( String[]::new ) );
 
         var phoneChars = cleanPhone.toCharArray();
@@ -93,14 +92,32 @@ public class OutputChecker {
         for ( String[] parts : allSolutions ) {
             var prevWasDigit = false;
             var index = 0;
+            var acceptableLength = 0;
             for ( String part : parts ) {
                 var partIsDigit = isDigit( part );
+                // initialize prevWasDigit for first time to not error on 2 sub-sequent digits/words
+                if ( index == 0 ) prevWasDigit = !partIsDigit;
                 if ( partIsDigit ) {
                     if ( prevWasDigit ) {
                         fail( lineNumber, "Phone '" + phoneSolutions.phone + "' has solution containing " +
                                 "two sub-sequent digits: '" + String.join( " ", parts ) + "'" );
                     }
                     digitIndexes[ index ] = true;
+                } else {
+                    if ( !prevWasDigit ) {
+                        fail( lineNumber, "Phone '" + phoneSolutions.phone + "' has solution containing " +
+                                "two sub-sequent words: '" + String.join( " ", parts ) + "'" );
+                    }
+                    if ( part.isEmpty() ) {
+                        fail( lineNumber, "Phone '" + phoneSolutions.phone + "' has solution containing " +
+                                "an empty word (too many whitespaces?): '" + String.join( " ", parts ) + "'" );
+                    }
+                    if ( acceptableLength == 0 ) {
+                        acceptableLength = part.length();
+                    } else if ( part.length() != acceptableLength ) {
+                        fail( lineNumber, "Phone '" + phoneSolutions.phone + "' has solution containing " +
+                                "at least two words of different lengths: '" + String.join( " ", parts ) + "'" );
+                    }
                 }
                 prevWasDigit = partIsDigit;
                 index += part.length();
@@ -152,7 +169,8 @@ public class OutputChecker {
     }
 
     private static void fail( AtomicInteger lineNumber, String reason ) {
-        throw new RuntimeException( "ERROR at line " + lineNumber.get() + ": " + reason );
+        System.err.println( "ERROR at line " + lineNumber.get() + ": " + reason );
+        System.exit( 1 );
     }
 }
 
