@@ -2,6 +2,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import java.io.StringWriter;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -11,21 +12,22 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class PhoneNumberEncoderTest {
 
-    static final Set<Item> WORDS = Set.of(
-            "ad",
-            "Bo\"",
-            "bo\"s",
-            "da",
-            "fort",
-            "je",
-            "mir",
-            "Mix",
-            "neu",
-            "o\"d",
-            "so",
-            "Tor",
-            "Torf"
-    ).stream().map( w -> new Item( w, WordsInputCleaner.clean( w ) ) ).collect( Collectors.toSet() );
+    static final Set<Item> WORDS = Stream.of(
+                    "ad",
+                    "Bo\"",
+                    "bo\"s",
+                    "da",
+                    "fort",
+                    "je",
+                    "mir",
+                    "Mix",
+                    "neu",
+                    "o\"d",
+                    "so",
+                    "Tor",
+                    "Torf"
+            ).map( w -> new Item( w, WordsInputCleaner.clean( w ) ) )
+            .collect( Collectors.toSet() );
 
     static Stream<Arguments> canEncodePhoneNumbersExamples() {
         return Stream.of(
@@ -38,10 +40,13 @@ public class PhoneNumberEncoderTest {
         );
     }
 
-    static final PhoneNumberEncoder encoder = new PhoneNumberEncoder( WORDS.stream() );
+    // encoder 2 was highly optimised, so we need to pass in a writer for it
+    final StringWriter writer = new StringWriter();
+
+    final PhoneNumberEncoder encoder = new PhoneNumberEncoder( WORDS.stream(), ( ignore ) -> true );
 
     // the encode2 does not use Item as input as it cleans the numbers itself
-    static final PhoneNumberEncoder2 encoder2 = new PhoneNumberEncoder2( WORDS.stream().map( i -> i.original() ) );
+    final PhoneNumberEncoder2 encoder2 = new PhoneNumberEncoder2( WORDS.stream().map( Item::original ), writer, ( ignore ) -> true );
 
     @ParameterizedTest
     @MethodSource( "canEncodePhoneNumbersExamples" )
@@ -63,16 +68,21 @@ public class PhoneNumberEncoderTest {
         assertEquals( expected, encode2( phone.original() ) );
     }
 
-    private static Set<Item> encode( Item phone ) {
+    private Set<Item> encode( Item phone ) {
         var result = new HashSet<Item>();
         encoder.encode( phone, result::add );
         return result;
     }
 
-    private static Set<Item> encode2( String phone ) {
-        var result = new HashSet<Item>();
-        encoder2.encode( phone, ( num, solution ) -> result.add( new Item( num, solution ) ) );
-        return result;
+    private Set<Item> encode2( String phone ) {
+        encoder2.encode( phone );
+
+        // each line is a solution
+        return writer.toString().lines().map( line -> {
+            var parts = line.split( ":\s" );
+            assert parts.length == 2;
+            return new Item( parts[ 0 ], parts[ 1 ] );
+        } ).collect( Collectors.toSet() );
     }
 
 }
