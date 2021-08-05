@@ -1,15 +1,11 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -26,21 +22,21 @@ final class Main {
         var words = new InputParser( WordsInputCleaner::clean )
                 .parse( new File( args.length > 0 ? args[ 0 ] : "tests/words.txt" ) );
 
-        var encoder = new PhoneNumberEncoder( words );
+        var encoder = new PhoneNumberEncoder( words, new InterleavingDigitsAndWordsOfSameLengthPrinterFilter() );
 
-        var printer = new BufferedWriter(new OutputStreamWriter(System.out, US_ASCII));
+        var printer = new BufferedWriter( new OutputStreamWriter( System.out, US_ASCII ) );
 
-        try (printer) {
-            new InputParser(PhoneNumberCleaner::clean)
-                    .parse(new File( args.length > 1 ? args[ 1 ] : "tests/numbers.txt" ) )
-                    .forEach( phone -> encoder.encode(phone, ( item ) -> {
+        try ( printer ) {
+            new InputParser( PhoneNumberCleaner::clean )
+                    .parse( new File( args.length > 1 ? args[ 1 ] : "tests/numbers.txt" ) )
+                    .forEach( phone -> encoder.encode( phone, ( item ) -> {
                         try {
                             printer.write( item.toString() );
                             printer.write( '\n' );
-                        } catch (IOException e) {
+                        } catch ( IOException e ) {
                             throw new RuntimeException( e );
                         }
-                    }));
+                    } ) );
         }
     }
 }
@@ -68,8 +64,11 @@ final class Main {
  */
 final class PhoneNumberEncoder {
     private final Trie dictionary;
+    private final PrinterFilter printerFilter;
 
-    PhoneNumberEncoder( Stream<Item> words ) {
+    PhoneNumberEncoder( Stream<Item> words, PrinterFilter printerFilter ) {
+        this.printerFilter = printerFilter;
+
         dictionary = new Trie();
         //long start = System.currentTimeMillis();
         words.forEach( dictionary::put );
@@ -77,7 +76,60 @@ final class PhoneNumberEncoder {
     }
 
     void encode( Item phone, Consumer<Item> onSolution ) {
-        dictionary.forEachSolution( phone, onSolution );
+        dictionary.forEachSolution( phone.result(), ( solution ) -> {
+            if ( printerFilter.test( solution ) ) {
+                onSolution.accept( Trie.Node.toItem( solution, phone ) );
+            }
+        } );
+    }
+}
+
+interface PrinterFilter extends Predicate<List<Trie.Node>> {
+}
+
+final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter implements PrinterFilter {
+
+    /**
+     * A solution can only be printed if all words (non-digits) in it have the exact same length
+     * and they interleave with digits.
+     * <p>
+     * For example, these are all valid solutions:
+     * <ul>
+     *     <li>abc</li>
+     *     <li>abc 1</li>
+     *     <li>abc 1 def 2 ghi</li>
+     *     <li>1 abc</li>
+     *     <li>1 abc 2</li>
+     * </ul>
+     *
+     * @param solution current solution
+     * @return whether this solution can be printed
+     */
+    @Override
+    public boolean test( List<Trie.Node> solution ) {
+        if ( solution.size() == 0 ) return false;
+        if ( solution.size() == 1 ) return true;
+        var iterator = solution.iterator();
+        var item = iterator.next();
+        var wasDigit = item.isDigit();
+        var acceptableLength = wasDigit ? -1 : item.length();
+        while ( iterator.hasNext() ) {
+            item = iterator.next();
+            if ( acceptableLength < 0 ) {
+                // if the first item was a digit we get here...
+                // we will return false if the current item is also a digit,
+                // so we know this length can be safely used for all non-digits.
+                acceptableLength = item.length();
+            }
+            // both previous and current are words or digits
+            if ( wasDigit == item.isDigit()
+                    // not a digit but a word with different length
+                    || ( !item.isDigit() && item.length() != acceptableLength ) ) {
+                return false;
+            }
+            wasDigit = item.isDigit();
+        }
+        return true;
     }
 }
 
@@ -97,6 +149,14 @@ final class Trie {
         Node( int digit ) {
             this.item = null;
             this.digit = digit;
+        }
+
+        int length() {
+            return item != null ? item.original().length() : 1;
+        }
+
+        boolean isDigit() {
+            return digit != -1;
         }
 
         static Item toItem( List<Node> nodes, Item phone ) {
@@ -138,10 +198,9 @@ final class Trie {
         }
     }
 
-    void forEachSolution( Item phone, Consumer<Item> onSolution ) {
-        char[] chars = phone.result().toCharArray();
-        completeSolution( List.of(), chars, 0, true, solution ->
-                onSolution.accept( Node.toItem( solution, phone ) ) );
+    void forEachSolution( String phone, Consumer<List<Node>> onSolution ) {
+        char[] chars = phone.toCharArray();
+        completeSolution( List.of(), chars, 0, true, onSolution );
     }
 
     /**
