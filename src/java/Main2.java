@@ -1,14 +1,11 @@
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.OutputStreamWriter;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
+import java.util.function.Predicate;
 import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -40,23 +37,76 @@ final class Main2 {
 
 
         var printer = new BufferedWriter( new OutputStreamWriter( System.out, US_ASCII ) );
+        var filter = new InterleavingDigitsAndWordsOfSameLengthPrinterFilter2();
 
         try ( printer ) {
-            var encoder = new PhoneNumberEncoder2( words, printer );
+            var encoder = new PhoneNumberEncoder2( words, printer, filter );
             new BufferedReader( new FileReader(
-                    args.length > 1 ? args[1] : "tests/numbers.txt", US_ASCII )
+                    args.length > 1 ? args[ 1 ] : "tests/numbers.txt", US_ASCII )
             ).lines().forEach( encoder::encode );
         }
     }
 }
 
+interface PrinterFilter2 extends Predicate<List<String>> {
+}
+
+final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter2 implements PrinterFilter2 {
+
+    /**
+     * A solution can only be printed if all words (non-digits) in it have the exact same length
+     * and they interleave with digits.
+     * <p>
+     * For example, these are all valid solutions:
+     * <ul>
+     *     <li>abc</li>
+     *     <li>abc 1</li>
+     *     <li>abc 1 def 2 ghi</li>
+     *     <li>1 abc</li>
+     *     <li>1 abc 2</li>
+     * </ul>
+     *
+     * @param solution current solution
+     * @return whether this solution can be printed
+     */
+    @Override
+    public boolean test( List<String> solution ) {
+        if ( solution.size() == 0 ) return false;
+        if ( solution.size() == 1 ) return true;
+        var iterator = solution.iterator();
+        var item = iterator.next();
+        var wasDigit = PhoneNumberEncoder2.isDigit( item );
+        var acceptableLength = wasDigit ? -1 : item.length();
+        while ( iterator.hasNext() ) {
+            item = iterator.next();
+            var isDigit = PhoneNumberEncoder2.isDigit( item );
+            if ( acceptableLength < 0 ) {
+                // if the first item was a digit we get here...
+                // we will return false if the current item is also a digit,
+                // so we know this length can be safely used for all non-digits.
+                acceptableLength = item.length();
+            }
+            // both previous and current are words or digits
+            if ( wasDigit == isDigit
+                    // not a digit but a word with different length
+                    || ( !isDigit && item.length() != acceptableLength ) ) {
+                return false;
+            }
+            wasDigit = isDigit;
+        }
+        return true;
+    }
+}
+
 final class PhoneNumberEncoder2 {
     private final Map<ByteBuffer, List<String>> dict;
-    private final BufferedWriter printer;
+    private final Writer writer;
+    private final PrinterFilter2 filter;
 
-    PhoneNumberEncoder2(Stream<String> words, BufferedWriter printer) {
-        this.printer = printer;
+    PhoneNumberEncoder2( Stream<String> words, Writer writer, PrinterFilter2 filter ) {
+        this.writer = writer;
         dict = loadDictionary( words );
+        this.filter = filter;
     }
 
     void encode( String phone ) {
@@ -107,12 +157,14 @@ final class PhoneNumberEncoder2 {
     }
 
     private void printSolution( String num, List<String> words ) {
-        // writing it out by invoking println several times like Rust does is counter-productive
-        try {
-            printer.write( num + ": " + String.join( " ", words ) );
-            printer.write( '\n' );
-        } catch ( IOException e ) {
-            throw new RuntimeException( e );
+        if ( filter.test( words ) ) {
+            // writing it out by invoking println several times like Rust does is counter-productive
+            try {
+                writer.write( num + ": " + String.join( " ", words ) );
+                writer.write( '\n' );
+            } catch ( IOException e ) {
+                throw new RuntimeException( e );
+            }
         }
     }
 
@@ -126,7 +178,11 @@ final class PhoneNumberEncoder2 {
     private boolean isLastItemDigit( List<String> words ) {
         if ( words.isEmpty() ) return false;
         var lastWord = words.get( words.size() - 1 );
-        return lastWord.length() == 1 && Character.isDigit( lastWord.chars().sum() );
+        return isDigit( lastWord );
+    }
+
+    static boolean isDigit( String word ) {
+        return word.length() == 1 && Character.isDigit( word.chars().sum() );
     }
 
     private static ByteBuffer wordToNumber( String word ) {
