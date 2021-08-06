@@ -30,26 +30,26 @@ function nthDigit(digits::String, i::Int64)::UInt
     UInt(digits[i]) - UInt('0')
 end
 
-function charToDigit(ch::Char)::UInt
-    ch = lowercase(ch)
-    ch == 'e' && return 0
-    ch in ['j', 'n', 'q'] && return 1
-    ch in ['r', 'w', 'x'] && return 2
-    ch in ['d', 's', 'y'] && return 3
-    ch in ['f', 't'] && return 4
-    ch in ['a', 'm'] && return 5
-    ch in ['c', 'i', 'v'] && return 6
-    ch in ['b', 'k', 'u'] && return 7
-    ch in ['l', 'o', 'p'] && return 8
-    ch in ['g', 'h', 'z'] && return 9
-    throw(DomainError(ch, "Not a letter"))
+const KEYS = begin
+    m = [
+         'j' 'r' 'd' 'f' 'a' 'c' 'b' 'l' 'g'
+         'n' 'w' 's' 't' 'm' 'i' 'k' 'o' 'h'
+         'q' 'x' 'y' '_' '_' 'v' 'u' 'p' 'z'
+        ]
+    map('a':'z') do c
+        n = 1
+        for col in eachcol(m) if c in col return n else n += 1 end end
+        0
+    end
 end
 
-function wordToNumber(word::String)::BigInt
+letter2digit(i) = KEYS[i > 0x00060 ? i - 0x00060 : i - 0x00040]
+
+function word2number(word)
     n = BigInt(1)
     for ch in word
         if isletter(ch) && isascii(ch)
-            n = n * 10 + charToDigit(ch)
+            n = n * 10 + letter2digit(UInt32(ch))
         end
     end
     n
@@ -59,7 +59,7 @@ function main()
     dict = open(isempty(ARGS) ? "tests/words.txt" : ARGS[begin]) do file
         d = Dict{BigInt, Vector{String}}()
         for word in eachline(file)
-            push!(get!(d, wordToNumber(word), String[]), word)
+            push!(get!(d, word2number(word), String[]), word)
         end
         d
     end
