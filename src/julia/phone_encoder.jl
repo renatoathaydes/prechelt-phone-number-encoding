@@ -7,7 +7,7 @@
 =#
 const emptyStrings = String[]
 
-function printTranslations(num, digits, start=1, words=String[])
+function printTranslations(dict, num, digits, start=1, words=String[])
     if start > length(digits)
        return println(num, ": ", join(words, " "))
     end
@@ -17,21 +17,13 @@ function printTranslations(num, digits, start=1, words=String[])
         n = n * 10 + nthDigit(digits, i)
         for word in get(dict, n, emptyStrings)
             foundWord = true
-            printTranslations(num, digits, i + 1, [words; word])
+            printTranslations(dict, num, digits, i + 1, [words; word])
         end
     end
     if !foundWord &&
         !(!isempty(words) && length(words[end]) == 1 && isdigit(words[end][begin]))
-        printTranslations(num, digits, start + 1, [words; string(nthDigit(digits, start))])
+        printTranslations(dict, num, digits, start + 1, [words; string(nthDigit(digits, start))])
     end
-end
-
-function loadDictionary(file)::Dict{BigInt, Vector{String}}
-    local dict = Dict{BigInt, Vector{String}}()
-    for word in eachline(file)
-        push!(get!(dict, wordToNumber(word)) do; String[] end, word)
-    end
-    dict
 end
 
 function nthDigit(digits::String, i::Int64)::UInt
@@ -63,13 +55,22 @@ function wordToNumber(word::String)::BigInt
     n
 end
 
+function main()
+    dict = open(isempty(ARGS) ? "tests/words.txt" : ARGS[begin]) do file
+        d = Dict{BigInt, Vector{String}}()
+        for word in eachline(file)
+            push!(get!(d, wordToNumber(word), String[]), word)
+        end
+        d
+    end
 
-dict = open(isempty(ARGS) ? "tests/words.txt" : ARGS[begin]) do file
-    loadDictionary(file)
+    open(length(ARGS) < 2 ? "tests/numbers.txt" : ARGS[begin+1]) do file
+        for num in eachline(file)
+            printTranslations(dict, num, filter(isdigit, num))
+        end
+    end
 end
 
-open(length(ARGS) < 2 ? "tests/numbers.txt" : ARGS[begin+1]) do file
-    for num in eachline(file)
-        printTranslations(num, filter(isdigit, num))
-    end
+if abspath(PROGRAM_FILE) == @__FILE__
+    main()
 end
