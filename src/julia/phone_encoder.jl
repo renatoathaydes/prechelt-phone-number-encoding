@@ -7,29 +7,6 @@
 =#
 const emptyStrings = String[]
 
-function printTranslations(dict, num, digits, start=1, words=String[])
-    if start > length(digits)
-       return println(num, ": ", join(words, " "))
-    end
-    foundWord = false
-    n = BigInt(1)
-    for i in start:length(digits)
-        n = n * 10 + nthDigit(digits, i)
-        for word in get(dict, n, emptyStrings)
-            foundWord = true
-            printTranslations(dict, num, digits, i + 1, [words; word])
-        end
-    end
-    if !foundWord &&
-        !(!isempty(words) && length(words[end]) == 1 && isdigit(words[end][begin]))
-        printTranslations(dict, num, digits, start + 1, [words; string(nthDigit(digits, start))])
-    end
-end
-
-function nthDigit(digits::String, i::Int64)::UInt
-    UInt(digits[i]) - UInt('0')
-end
-
 const KEYS = begin
     m = [
          'j' 'r' 'd' 'f' 'a' 'c' 'b' 'l' 'g'
@@ -42,6 +19,27 @@ const KEYS = begin
         0
     end
 end
+
+function printTranslations(dict, num, digits, start=1, words=String[])
+    if start > length(digits)
+       return println(num, ": ", join(words, " "))
+    end
+    foundWord = false
+    n = BigInt(1)
+    for i in start:length(digits)
+        n = n * 10 + nth_digit(digits, i)
+        for word in get(dict, n, emptyStrings)
+            foundWord = true
+            printTranslations(dict, num, digits, i + 1, [words; word])
+        end
+    end
+    if !foundWord &&
+        !(!isempty(words) && length(words[end]) == 1 && isdigit(words[end][begin]))
+        printTranslations(dict, num, digits, start + 1, [words; string(nth_digit(digits, start))])
+    end
+end
+
+nth_digit(digits, i) = digits[i] - '0'
 
 letter2digit(i) = KEYS[i > 0x00060 ? i - 0x00060 : i - 0x00040]
 
