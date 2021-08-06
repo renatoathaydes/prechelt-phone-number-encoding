@@ -98,7 +98,9 @@ $ dart compile exe bin/phone_encoder.dart
 
 ### Julia
 
-No compilation is required.
+```sh
+$ julia -e 'using Pkg; Pkg.develop(;path="./src/julia/Prechelt"); using Prechelt'
+```
 
 ## Running
 
