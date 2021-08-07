@@ -39,6 +39,7 @@ fn main() -> io::Result<()> {
     let words_file: String = if !args.is_empty() { args.remove(0) } else { "tests/words.txt".into() };
     let input_file: String = if !args.is_empty() { args.remove(0) } else { "tests/numbers.txt".into() };
 
+    let mut solution_count = 0;
     let dict = load_dict(words_file)?;
 
     let stdout = io::stdout();
@@ -50,12 +51,14 @@ fn main() -> io::Result<()> {
             .filter(char::is_ascii_digit)
             .map(|ch| ch as u8)
             .collect();
-        print_translations(&num, &digits, &mut Vec::new(), &dict, &mut writer);
+        print_translations(&mut solution_count, &num, &digits, &mut Vec::new(), &dict, &mut writer);
     }
+    eprintln!("Found solutions: {}", solution_count);
     Ok(())
 }
 
 fn print_translations<'a>(
+    solution_count: &mut usize,
     num: &str,
     digits: &[u8],
     words: &mut Vec<WordOrDigit<'a>>,
@@ -63,7 +66,9 @@ fn print_translations<'a>(
     writer: &mut BufWriter<StdoutLock>,
 ) {
     if digits.is_empty() {
-        print_solution(num, &words, writer);
+        if print_solution(num, &words, writer) {
+            *solution_count += 1;
+        }
         return;
     }
     let mut found_word = false;
@@ -73,7 +78,7 @@ fn print_translations<'a>(
             for word in found_words {
                 found_word = true;
                 words.push(WordOrDigit::Word(word));
-                print_translations(num, rest_of_digits, words, dict, writer);
+                print_translations(solution_count, num, rest_of_digits, words, dict, writer);
                 words.pop();
             }
         }
@@ -82,13 +87,13 @@ fn print_translations<'a>(
         return;
     }
     let last_is_digit = match words.last() {
-        Some(WordOrDigit::Digit(_)) => true,
+        Some(WordOrDigit::Digit(..)) => true,
         _ => false,
     };
     if !last_is_digit {
         let digit = digits[0] - b'0';
         words.push(WordOrDigit::Digit(digit));
-        print_translations(num, &digits[1..], words, dict, writer);
+        print_translations(solution_count, num, &digits[1..], words, dict, writer);
         words.pop();
     }
 }
@@ -97,13 +102,13 @@ fn print_solution(
     num: &str,
     words: &[WordOrDigit<'_>],
     writer: &mut BufWriter<StdoutLock>,
-) {
-    if !should_print(words) { return; }
+) -> bool {
+    if !should_print(words) { return false; }
     // do a little gymnastics here to avoid allocating a big string just for printing it
     write!(writer, "{}", num).unwrap();
     if words.is_empty() {
         write!(writer, ":").unwrap();
-        return;
+        return true;
     }
     write!(writer, ": ").unwrap();
     let (head, tail) = words.split_at(words.len() - 1);
@@ -114,6 +119,7 @@ fn print_solution(
         write!(writer, "{}", word).unwrap();
     }
     write!(writer, "\n").unwrap();
+    true
 }
 
 fn should_print(words: &[WordOrDigit]) -> bool {

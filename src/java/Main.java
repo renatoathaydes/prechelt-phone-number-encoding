@@ -22,7 +22,8 @@ final class Main {
         var words = new InputParser( WordsInputCleaner::clean )
                 .parse( new File( args.length > 0 ? args[ 0 ] : "tests/words.txt" ) );
 
-        var encoder = new PhoneNumberEncoder( words, new InterleavingDigitsAndWordsOfSameLengthPrinterFilter() );
+        var filter = new InterleavingDigitsAndWordsOfSameLengthPrinterFilter();
+        var encoder = new PhoneNumberEncoder( words, filter );
 
         var printer = new BufferedWriter( new OutputStreamWriter( System.out, US_ASCII ) );
 
@@ -38,6 +39,8 @@ final class Main {
                         }
                     } ) );
         }
+
+        System.err.println("Found solutions: " + filter.acceptedCount());
     }
 }
 
@@ -88,6 +91,7 @@ interface PrinterFilter extends Predicate<List<Trie.Node>> {
 }
 
 final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter implements PrinterFilter {
+    private int acceptedSolutions = 0;
 
     /**
      * A solution can only be printed if all words (non-digits) in it have the exact same length
@@ -108,7 +112,10 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter implements Print
     @Override
     public boolean test( List<Trie.Node> solution ) {
         if ( solution.size() == 0 ) return false;
-        if ( solution.size() == 1 ) return true;
+        if ( solution.size() == 1 ) {
+            acceptedSolutions++;
+            return true;
+        }
         var iterator = solution.iterator();
         var item = iterator.next();
         var wasDigit = item.isDigit();
@@ -129,7 +136,12 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter implements Print
             }
             wasDigit = item.isDigit();
         }
+        acceptedSolutions++;
         return true;
+    }
+
+    public int acceptedCount() {
+        return acceptedSolutions;
     }
 }
 

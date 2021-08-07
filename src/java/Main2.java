@@ -45,6 +45,8 @@ final class Main2 {
                     args.length > 1 ? args[ 1 ] : "tests/numbers.txt", US_ASCII )
             ).lines().forEach( encoder::encode );
         }
+
+        System.err.println("Found solutions: " + filter.acceptedCount());
     }
 }
 
@@ -52,6 +54,7 @@ interface PrinterFilter2 extends Predicate<List<String>> {
 }
 
 final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter2 implements PrinterFilter2 {
+    private int acceptedSolutions = 0;
 
     /**
      * A solution can only be printed if all words (non-digits) in it have the exact same length
@@ -72,7 +75,10 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter2 implements Prin
     @Override
     public boolean test( List<String> solution ) {
         if ( solution.size() == 0 ) return false;
-        if ( solution.size() == 1 ) return true;
+        if ( solution.size() == 1 ) {
+            acceptedSolutions++;
+            return true;
+        }
         var iterator = solution.iterator();
         var item = iterator.next();
         var wasDigit = PhoneNumberEncoder2.isDigit( item );
@@ -94,7 +100,12 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter2 implements Prin
             }
             wasDigit = isDigit;
         }
+        acceptedSolutions++;
         return true;
+    }
+
+    public int acceptedCount() {
+        return acceptedSolutions;
     }
 }
 
