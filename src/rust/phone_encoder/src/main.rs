@@ -14,6 +14,8 @@ lazy_static! {
     static ref TEN: BigUint =10.to_biguint().unwrap();
 }
 
+static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
+
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
 /// Even though this is intended as a port, it deviates quite a bit from it
@@ -41,7 +43,7 @@ fn print_translations(
     num: &str,
     digits: &Vec<char>,
     start: usize,
-    words: Vec<&String>,
+    words: Vec<&str>,
     dict: &Dictionary,
 ) -> io::Result<()> {
     if start >= digits.len() {
@@ -64,15 +66,15 @@ fn print_translations(
     }
     if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
         let mut partial_solution = words.clone();
-        let digit = nth_digit(digits, start).to_string();
-        partial_solution.push(&digit);
+        let digit = DIGITS[nth_digit(digits, start) as usize];
+        partial_solution.push(digit);
         print_translations(num, digits, start + 1, partial_solution, dict)
     } else {
         Ok(())
     }
 }
 
-fn print_solution(num: &str, words: &Vec<&String>) {
+fn print_solution(num: &str, words: &Vec<&str>) {
     // do a little gymnastics here to avoid allocating a big string just for printing it
     print!("{}", num);
     if words.is_empty() {
@@ -130,7 +132,7 @@ fn is_digit(string: &str) -> bool {
     string.len() == 1 && string.chars().next().unwrap().is_digit(10)
 }
 
-fn char_to_digit(ch: char) -> u32 {
+fn char_to_digit(ch: char) -> u8 {
     match ch.to_ascii_lowercase() {
         'e' => 0,
         'j' | 'n' | 'q' => 1,
