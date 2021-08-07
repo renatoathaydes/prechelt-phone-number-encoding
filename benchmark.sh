@@ -14,12 +14,12 @@ if [ ! -f words.txt ]; then
 fi
 
 COMMANDS=(
-#  "java -cp build/java Main"          # Java 1
-#  "java -cp build/java Main2"         # Java 2
+  "java -cp build/java Main"          # Java 1
+  "java -cp build/java Main2"         # Java 2
 #  "sbcl --script src/lisp/main.lisp"  # Common Lisp
   "./phone_encoder"                   # Rust
 #  "src/dart/phone-encoder/bin/phone_encoder.exe" # Dart
-  "julia src/julia/phone_encoder.jl"  # Julia
+#  "julia src/julia/phone_encoder.jl"  # Julia
 )
 
 echo "Compiling Java sources"
@@ -37,16 +37,16 @@ cd ../../..
 #cd ../../..
 
 echo "Generating inputs"
-INPUTS=(phones_2000.txt phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
+INPUTS=(phones_1000.txt phones_2000.txt phones_3000.txt phones_4000.txt  phones_5000.txt)
 rm "${INPUTS[@]}" > /dev/null 2>&1 || true
-java -cp "build/util" util.GeneratePhoneNumbers 2000 false 12 > phones_2000.txt
-java -cp "build/util" util.GeneratePhoneNumbers 1000 > phones_1000.txt
-java -cp "build/util" util.GeneratePhoneNumbers 10000 > phones_10_000.txt
-java -cp "build/util" util.GeneratePhoneNumbers 50000 > phones_50_000.txt
-java -cp "build/util" util.GeneratePhoneNumbers 100000 "true" > phones_100_000_with_empty.txt
+java -cp "build/util" util.GeneratePhoneNumbers 1000 false 16 > phones_1000.txt
+java -cp "build/util" util.GeneratePhoneNumbers 2000 false 16 > phones_2000.txt
+java -cp "build/util" util.GeneratePhoneNumbers 3000 false 16 > phones_3000.txt
+java -cp "build/util" util.GeneratePhoneNumbers 4000 false 16 > phones_4000.txt
+java -cp "build/util" util.GeneratePhoneNumbers 5000 false 16 > phones_5000.txt
 
 # a large phone number (length 23) for use with the large dictionary
-echo  "91760687651618841752033" > phones_1.txt
+#echo  "91760687651618841752033" > phones_1.txt
 
 CHECK_FILE="proc_out.txt"
 DEFAULT_INPUT="input.txt"
@@ -62,19 +62,21 @@ do
   echo "OK"
 done
 
+DICTIONARY="words.txt"
+
 echo "Benchmarking..."
 for CMD in "${COMMANDS[@]}"
 do
   echo "===> $CMD"
   # shellcheck disable=SC2086
-#  for file in "${INPUTS[@]}"; do ./benchmark_runner $CMD $DICTIONARY "$file"; done;
+  for file in "${INPUTS[@]}"; do ./benchmark_runner "$file" $CMD $DICTIONARY "$file"; done;
 
   # final run with very large dictionary
   # shellcheck disable=SC2086
-#  ./benchmark_runner $CMD words.txt phones_2000.txt
+#  ./benchmark_runner phones_2000.txt $CMD words.txt phones_2000.txt
 
   # another run with very large dictionary and one single large phone number
-  ./benchmark_runner $CMD words.txt phones_1.txt
+#  ./benchmark_runner phones_1.txt $CMD words.txt phones_1.txt
 done
 
 echo "Cleaning up"

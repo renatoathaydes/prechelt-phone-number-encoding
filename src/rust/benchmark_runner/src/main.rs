@@ -8,6 +8,7 @@ use libproc::libproc::pid_rusage::{pidrusage, RUsageInfoV4};
 
 fn main() {
     let mut args = args().skip(1);
+    let input_desc = args.next().expect("Description of input was not provided");
     let proc_name = args.next().expect("Name of process to start was not provided");
     let proc_args: Vec<_> = args.collect();
 
@@ -16,6 +17,7 @@ fn main() {
     let mut out = Command::new(&proc_name).args(proc_args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
+        .stderr(Stdio::inherit())
         .spawn()
         .expect("process could not be created");
     let pid = out.id() as i32;
@@ -44,6 +46,6 @@ fn main() {
 
     let total_time = Instant::now().duration_since(start_time);
 
-    println!("Proc,Memory(bytes),Time(ms)");
-    println!("{},{},{}", proc_name, mem, total_time.as_millis());
+    println!("Proc,Input,Memory(bytes),Time(ms)");
+    println!("{},{},{},{}", proc_name, input_desc, mem, total_time.as_millis());
 }

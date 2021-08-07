@@ -69,7 +69,7 @@ for CMD in "${COMMANDS[@]}"
 do
   echo "2 ===> $CMD"
   # shellcheck disable=SC2086
-  for file in "${INPUTS2[@]}"; do ./benchmark_runner $CMD $DICTIONARY "$file"; done;
+  for file in "${INPUTS2[@]}"; do ./benchmark_runner "$file" $CMD $DICTIONARY "$file"; done;
 done
 
 echo "Cleaning up"
