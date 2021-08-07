@@ -51,7 +51,8 @@ fn print_translations(
     let mut n = ONE.clone();
     let mut found_word = false;
     for i in start..digits.len() {
-        n = &n * (&*TEN) + &nth_digit(digits, i);
+        n *= &*TEN;
+        n += nth_digit(digits, i);
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
@@ -113,15 +114,16 @@ fn word_to_number(word: &str) -> BigUint {
     let mut n = ONE.clone();
     for ch in word.chars() {
         if ch.is_alphabetic() {
-            n = &n * (&*TEN) + &char_to_digit(ch);
+            n *= &*TEN;
+            n += char_to_digit(ch);
         }
     }
     n
 }
 
-fn nth_digit(digits: &Vec<char>, i: usize) -> BigUint {
+fn nth_digit(digits: &Vec<char>, i: usize) -> u8 {
     let ch = digits.get(i).expect("index out of bounds");
-    ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
+    ((*ch as usize) - ('0' as usize)) as u8
 }
 
 fn is_digit(string: &str) -> bool {
