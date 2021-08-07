@@ -13,6 +13,12 @@ enum WordOrDigit<'a> {
     Digit(u8),
 }
 
+impl<'a> WordOrDigit<'a> {
+    fn len(&self) -> usize {
+        if let WordOrDigit::Word(w) = self { w.len() } else { 1 }
+    }
+}
+
 impl Display for WordOrDigit<'_> {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -90,8 +96,9 @@ fn print_translations<'a>(
 fn print_solution(
     num: &str,
     words: &[WordOrDigit<'_>],
-    writer: &mut BufWriter<StdoutLock>
+    writer: &mut BufWriter<StdoutLock>,
 ) {
+    if !should_print(words) { return; }
     // do a little gymnastics here to avoid allocating a big string just for printing it
     write!(writer, "{}", num).unwrap();
     if words.is_empty() {
@@ -107,6 +114,28 @@ fn print_solution(
         write!(writer, "{}", word).unwrap();
     }
     write!(writer, "\n").unwrap();
+}
+
+fn should_print(words: &[WordOrDigit]) -> bool {
+    if words.is_empty() { return false; }
+    if words.len() == 1 { return true; }
+    let word = words[0];
+    let (mut was_digit, mut acceptable_len) = match word {
+        WordOrDigit::Word(w) => (false, w.len()),
+        WordOrDigit::Digit(_) => (true, 0)
+    };
+    for word in words[1..].iter() {
+        if acceptable_len == 0 {
+            acceptable_len = word.len();
+        }
+        let is_digit = matches!(word, WordOrDigit::Digit(..));
+        if was_digit == is_digit ||
+            ( !is_digit && word.len() != acceptable_len ) {
+            return false;
+        }
+        was_digit = is_digit;
+    }
+    true
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
