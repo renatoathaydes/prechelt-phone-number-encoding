@@ -1,4 +1,9 @@
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -46,7 +51,8 @@ final class Main2 {
             ).lines().forEach( encoder::encode );
         }
 
-        System.err.println("Found solutions: " + filter.acceptedCount());
+        System.err.println( "Found solutions: " + filter.acceptedCount() +
+                ", rejected: " + filter.rejectedSolutionCount() );
     }
 }
 
@@ -55,6 +61,8 @@ interface PrinterFilter2 extends Predicate<List<String>> {
 
 final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter2 implements PrinterFilter2 {
     private int acceptedSolutions = 0;
+    private long rejectedSolutions = 0;
+
 
     /**
      * A solution can only be printed if all words (non-digits) in it have the exact same length
@@ -74,7 +82,10 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter2 implements Prin
      */
     @Override
     public boolean test( List<String> solution ) {
-        if ( solution.size() == 0 ) return false;
+        if ( solution.size() == 0 ) {
+            rejectedSolutions++;
+            return false;
+        }
         if ( solution.size() == 1 ) {
             acceptedSolutions++;
             return true;
@@ -96,6 +107,7 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter2 implements Prin
             if ( wasDigit == isDigit
                     // not a digit but a word with different length
                     || ( !isDigit && item.length() != acceptableLength ) ) {
+                rejectedSolutions++;
                 return false;
             }
             wasDigit = isDigit;
@@ -106,6 +118,10 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter2 implements Prin
 
     public int acceptedCount() {
         return acceptedSolutions;
+    }
+
+    public long rejectedSolutionCount() {
+        return rejectedSolutions;
     }
 }
 

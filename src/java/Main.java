@@ -40,7 +40,8 @@ final class Main {
                     } ) );
         }
 
-        System.err.println("Found solutions: " + filter.acceptedCount());
+        System.err.println("Found solutions: " + filter.acceptedCount() +
+                ", rejected: " + filter.rejectedSolutionCount());
     }
 }
 
@@ -92,6 +93,7 @@ interface PrinterFilter extends Predicate<List<Trie.Node>> {
 
 final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter implements PrinterFilter {
     private int acceptedSolutions = 0;
+    private long rejectedSolutions = 0;
 
     /**
      * A solution can only be printed if all words (non-digits) in it have the exact same length
@@ -111,7 +113,10 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter implements Print
      */
     @Override
     public boolean test( List<Trie.Node> solution ) {
-        if ( solution.size() == 0 ) return false;
+        if ( solution.size() == 0 ) {
+            rejectedSolutions++;
+            return false;
+        }
         if ( solution.size() == 1 ) {
             acceptedSolutions++;
             return true;
@@ -132,6 +137,7 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter implements Print
             if ( wasDigit == item.isDigit()
                     // not a digit but a word with different length
                     || ( !item.isDigit() && item.length() != acceptableLength ) ) {
+                rejectedSolutions++;
                 return false;
             }
             wasDigit = item.isDigit();
@@ -142,6 +148,10 @@ final class InterleavingDigitsAndWordsOfSameLengthPrinterFilter implements Print
 
     public int acceptedCount() {
         return acceptedSolutions;
+    }
+
+    public long rejectedSolutionCount() {
+        return rejectedSolutions;
     }
 }
 

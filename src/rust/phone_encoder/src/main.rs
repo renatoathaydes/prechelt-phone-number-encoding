@@ -40,6 +40,7 @@ fn main() -> io::Result<()> {
     let input_file: String = if !args.is_empty() { args.remove(0) } else { "tests/numbers.txt".into() };
 
     let mut solution_count = 0;
+    let mut rejected_solution_count: u64 = 0;
     let dict = load_dict(words_file)?;
 
     let stdout = io::stdout();
@@ -51,14 +52,15 @@ fn main() -> io::Result<()> {
             .filter(char::is_ascii_digit)
             .map(|ch| ch as u8)
             .collect();
-        print_translations(&mut solution_count, &num, &digits, &mut Vec::new(), &dict, &mut writer);
+        print_translations(&mut solution_count,&mut rejected_solution_count, &num, &digits, &mut Vec::new(), &dict, &mut writer);
     }
-    eprintln!("Found solutions: {}", solution_count);
+    eprintln!("Found solutions: {}, rejected: {}", solution_count, rejected_solution_count);
     Ok(())
 }
 
 fn print_translations<'a>(
     solution_count: &mut usize,
+    rejected_solution_count: &mut u64,
     num: &str,
     digits: &[u8],
     words: &mut Vec<WordOrDigit<'a>>,
@@ -68,6 +70,8 @@ fn print_translations<'a>(
     if digits.is_empty() {
         if print_solution(num, &words, writer) {
             *solution_count += 1;
+        } else {
+            *rejected_solution_count += 1;
         }
         return;
     }
@@ -78,7 +82,7 @@ fn print_translations<'a>(
             for word in found_words {
                 found_word = true;
                 words.push(WordOrDigit::Word(word));
-                print_translations(solution_count, num, rest_of_digits, words, dict, writer);
+                print_translations(solution_count, rejected_solution_count, num, rest_of_digits, words, dict, writer);
                 words.pop();
             }
         }
@@ -93,7 +97,7 @@ fn print_translations<'a>(
     if !last_is_digit {
         let digit = digits[0] - b'0';
         words.push(WordOrDigit::Digit(digit));
-        print_translations(solution_count, num, &digits[1..], words, dict, writer);
+        print_translations(solution_count, rejected_solution_count, num, &digits[1..], words, dict, writer);
         words.pop();
     }
 }
