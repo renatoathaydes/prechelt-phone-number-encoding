@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::env::args;
-use std::fs::File;
-use std::io::{self, Write, BufRead, BufWriter, StdoutLock};
-use std::path::Path;
 use std::fmt::{self, Display, Formatter};
+use std::fs::File;
+use std::io::{self, BufRead, BufWriter, StdoutLock, Write};
+use std::path::Path;
 
-type Dictionary = HashMap<Vec<u8>, Vec<String>>;
+type Dictionary = HashMap<Vec<u8>, Vec<String>, ahash::RandomState>;
 
 #[derive(Debug, Copy, Clone)]
 enum WordOrDigit<'a> {
@@ -52,7 +52,7 @@ fn main() -> io::Result<()> {
             .filter(char::is_ascii_digit)
             .map(|ch| ch as u8)
             .collect();
-        print_translations(&mut solution_count,&mut rejected_solution_count, &num, &digits, &mut Vec::new(), &dict, &mut writer);
+        print_translations(&mut solution_count, &mut rejected_solution_count, &num, &digits, &mut Vec::new(), &dict, &mut writer);
     }
     eprintln!("Found solutions: {}, rejected: {}", solution_count, rejected_solution_count);
     Ok(())
@@ -140,7 +140,7 @@ fn should_print(words: &[WordOrDigit]) -> bool {
         }
         let is_digit = matches!(word, WordOrDigit::Digit(..));
         if was_digit == is_digit ||
-            ( !is_digit && word.len() != acceptable_len ) {
+            (!is_digit && word.len() != acceptable_len) {
             return false;
         }
         was_digit = is_digit;
@@ -149,7 +149,10 @@ fn should_print(words: &[WordOrDigit]) -> bool {
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
-    let mut dict: Dictionary = HashMap::with_capacity(100);
+    let mut dict: Dictionary = HashMap::with_capacity_and_hasher(
+        100,
+        ahash::RandomState::default());
+
     for line in read_lines(words_file)? {
         let word = line?;
         let key = word_to_number(&word);
