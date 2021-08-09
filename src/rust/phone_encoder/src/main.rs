@@ -97,12 +97,10 @@ fn print_solution<W: Write>(num: &str, words: &[&str], writer: &mut BufWriter<W>
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
     let mut dict = HashMap::with_capacity(100);
     let words = read_lines(words_file)?;
-    for line in words {
-        if let Ok(word) = line {
-            let key = word_to_number(&word);
-            let words = dict.entry(key).or_insert_with(|| Vec::new());
-            words.push(word);
-        }
+    for word in words.flatten() {
+        let key = word_to_number(&word);
+        let words = dict.entry(key).or_insert_with(|| Vec::new());
+        words.push(word);
     }
     Ok(dict)
 }
