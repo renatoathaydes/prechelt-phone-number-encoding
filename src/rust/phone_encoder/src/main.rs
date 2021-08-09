@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, BufWriter, Write};
 use std::path::Path;
 
 use lazy_static::lazy_static;
@@ -28,28 +28,31 @@ fn main() -> io::Result<()> {
 
     let dict = load_dict(words_file)?;
 
+    let stdout = io::stdout();
+    let mut writer = BufWriter::new(stdout.lock());
+
     for line in read_lines(input_file)? {
         if let Ok(num) = line {
             let digits: Vec<_> = num.chars()
                 .filter(|ch| ch.is_alphanumeric())
                 .collect();
             let mut words = Vec::new();
-            print_translations(&num, &digits, 0, &mut words, &dict)?;
+            print_translations(&num, &digits, 0, &mut words, &dict, &mut writer)?;
         }
     }
     Ok(())
 }
 
-fn print_translations<'dict>(
+fn print_translations<'dict, W: Write>(
     num: &str,
     digits: &Vec<char>,
     start: usize,
     words: &mut Vec<&'dict str>,
     dict: &'dict Dictionary,
+    writer: &mut BufWriter<W>,
 ) -> io::Result<()> {
     if start >= digits.len() {
-        print_solution(num, &words);
-        return Ok(());
+        return print_solution(num, &words, writer)
     }
     let mut n = ONE.clone();
     let mut found_word = false;
@@ -60,14 +63,14 @@ fn print_translations<'dict>(
             for word in found_words {
                 found_word = true;
                 words.push(word);
-                print_translations(num, digits, i + 1, words, dict)?;
+                print_translations(num, digits, i + 1, words, dict, writer)?;
                 words.pop();
             }
         }
     }
     if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
         words.push(DIGITS[nth_digit(digits, start) as usize]);
-        let res = print_translations(num, digits, start + 1, words, dict);
+        let res = print_translations(num, digits, start + 1, words, dict, writer);
         words.pop();
         res
     } else {
@@ -75,21 +78,20 @@ fn print_translations<'dict>(
     }
 }
 
-fn print_solution(num: &str, words: &Vec<&str>) {
+fn print_solution<W: Write>(num: &str, words: &Vec<&str>, writer: &mut BufWriter<W>) -> io::Result<()> {
     // do a little gymnastics here to avoid allocating a big string just for printing it
-    print!("{}", num);
+    write!(writer, "{}", num)?;
+    write!(writer, ":")?;
     if words.is_empty() {
-        println!(":");
-        return;
+        writeln!(writer)?;
+        return Ok(());
     }
-    print!(": ");
-    let (head, tail) = words.split_at(words.len() - 1);
-    for word in head {
-        print!("{} ", word);
+    for word in words {
+        write!(writer, " ")?;
+        write!(writer, "{}", word)?;
     }
-    for word in tail { // only last word in tail
-        println!("{}", word);
-    }
+    writeln!(writer)?;
+    Ok(())
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
