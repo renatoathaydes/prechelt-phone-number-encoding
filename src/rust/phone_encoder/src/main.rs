@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use std::env::args;
 use std::fs::File;
+use std::hash::{Hash, Hasher};
 use std::io::{self, BufRead, BufWriter, Write};
 use std::path::Path;
-use std::hash::{Hash, Hasher};
 
 type Dictionary = HashMap<DigitBytes, Vec<String>>;
 
@@ -140,60 +140,52 @@ fn char_to_digit(ch: u8) -> Option<u8> {
 
 #[derive(Debug, Eq, Clone)]
 struct DigitBytes {
-    even: bool,
-    full: bool,
-    write_index: usize,
-    bytes: [u8; 25],
+    high: bool,
+    shl: usize,
+    bytes: [u128; 2],
 }
 
 impl DigitBytes {
     fn new() -> DigitBytes {
-        DigitBytes { even: true, write_index: 0, bytes: [0; 25], full: false }
+        DigitBytes { high: false, shl: 0, bytes: [0; 2] }
     }
 
     fn push(&mut self, b: u8) {
-        if self.full {
-            panic!("too many digits pushed")
+        let idx = if self.high { 1 } else { 0 };
+        self.bytes[idx] += (b as u128) << self.shl;
+        self.shl += 4;
+        if self.shl == 128 {
+            self.shl = 0;
+            self.high = true;
         }
-        if self.even {
-            self.bytes[self.write_index] = b;
-        } else {
-            self.bytes[self.write_index] += b << 4;
-            if self.write_index + 1 == self.bytes.len() {
-                // can't increase index anymore otherwise will break Eq and Hash checks
-                self.full = true;
-            } else {
-                self.write_index += 1;
-            }
-        }
-        self.even = !self.even;
     }
 }
 
 impl PartialEq<Self> for DigitBytes {
     fn eq(&self, other: &Self) -> bool {
-        self.full == other.full &&
-        self.even == other.even &&
-            self.bytes[0..=self.write_index] == other.bytes[0..=other.write_index]
+        self.high == other.high &&
+            self.shl == other.shl &&
+            self.bytes == other.bytes
     }
 }
 
 impl Hash for DigitBytes {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.bytes[0..=self.write_index].hash(state);
-        self.even.hash(state);
-        self.full.hash(state);
+        self.high.hash(state);
+        self.shl.hash(state);
+        self.bytes.hash(state);
     }
 }
 
 #[cfg(test)]
 mod digit_bytes_test {
-    use crate::DigitBytes;
     use std::collections::HashMap;
+
+    use crate::DigitBytes;
 
     #[test]
     fn can_write() {
-        let mut expected_bytes = [0; 25];
+        let mut expected_bytes = [0u128; 2];
         let mut bytes = DigitBytes::new();
         assert_eq!(bytes.bytes, expected_bytes);
         bytes.push(9);
@@ -201,7 +193,15 @@ mod digit_bytes_test {
         expected_bytes[0] = 41;
         assert_eq!(bytes.bytes, expected_bytes);
         bytes.push(4);
-        expected_bytes[1] = 4;
+        expected_bytes[0] = 1065;
+        assert_eq!(bytes.bytes, expected_bytes);
+
+        // get to the high value
+        for _ in 1..30 {
+            bytes.push(0);
+        }
+        bytes.push(2);
+        expected_bytes[1] = 2;
         assert_eq!(bytes.bytes, expected_bytes);
     }
 
@@ -283,7 +283,7 @@ mod digit_bytes_test {
         for _ in 0..50 {
             a.push(0);
         }
-        assert!(a.full);
+        assert!(a.high);
 
         // make sure an instance filled with zero is not equal to an empty one
         let b = DigitBytes::new();
