@@ -163,9 +163,12 @@ impl DigitBytes {
 
 impl PartialEq<Self> for DigitBytes {
     fn eq(&self, other: &Self) -> bool {
-        self.high == other.high &&
-            self.shl == other.shl &&
+        if self.high != other.high { return false; }
+        self.shl == other.shl && if self.high {
             self.bytes == other.bytes
+        } else {
+            self.bytes[0] == other.bytes[0]
+        }
     }
 }
 
@@ -173,7 +176,11 @@ impl Hash for DigitBytes {
     fn hash<H: Hasher>(&self, state: &mut H) {
         self.high.hash(state);
         self.shl.hash(state);
-        self.bytes.hash(state);
+        if self.high {
+            self.bytes.hash(state);
+        } else {
+            self.bytes[0].hash(state);
+        }
     }
 }
 
