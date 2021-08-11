@@ -5,7 +5,35 @@ use std::io::{self, BufRead, BufWriter, Write};
 use std::path::Path;
 use std::hash::{Hash, Hasher};
 
-type Dictionary = HashMap<DigitBytes, Vec<String>>;
+use bloom::BloomFilter;
+
+struct Dictionary {
+    map: HashMap<DigitBytes, Vec<String>>,
+    filter: BloomFilter,
+}
+
+impl Dictionary {
+    fn new() -> Dictionary {
+        Dictionary {
+            map: HashMap::with_capacity(100_000),
+            filter: BloomFilter::with_rate(0.001, 100_000),
+        }
+    }
+
+    fn get(&self, key: &DigitBytes) -> Option<&Vec<String>> {
+        if !self.filter.contains(key) {
+            None
+        } else {
+            self.map.get(key)
+        }
+    }
+
+    fn insert(&mut self, key: DigitBytes, word: String) {
+        self.filter.insert(&key);
+        let words = self.map.entry(key).or_insert_with(|| Vec::new());
+        words.push(word);
+    }
+}
 
 static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
@@ -87,12 +115,10 @@ fn print_solution<W: Write>(num: &str, words: &[&str], writer: &mut BufWriter<W>
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
-    let mut dict = HashMap::with_capacity(100);
+    let mut dict = Dictionary::new();
     let words = read_lines(words_file)?;
     for word in words.flatten() {
-        let key = word_to_number(&word);
-        let words = dict.entry(key).or_insert_with(|| Vec::new());
-        words.push(word);
+        dict.insert(word_to_number(&word), word);
     }
     Ok(dict)
 }
