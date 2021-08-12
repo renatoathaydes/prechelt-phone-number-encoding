@@ -75,20 +75,11 @@ fn print_translations(
 }
 
 fn print_solution(num: &str, words: &Vec<&str>) {
-    // do a little gymnastics here to avoid allocating a big string just for printing it
-    print!("{}", num);
-    if words.is_empty() {
-        println!(":");
-        return;
+    print!("{}:", num);
+    for word in words {
+        print!(" {}", word);
     }
-    print!(": ");
-    let (head, tail) = words.split_at(words.len() - 1);
-    for word in head {
-        print!("{} ", word);
-    }
-    for word in tail { // only last word in tail
-        println!("{}", word);
-    }
+    println!();
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
