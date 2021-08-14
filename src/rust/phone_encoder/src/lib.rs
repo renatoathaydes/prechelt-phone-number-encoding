@@ -4,7 +4,6 @@ use std::io::{self, BufRead};
 use std::path::Path;
 
 use num_bigint::BigUint;
-use rpds::List;
 
 pub type Dictionary = HashMap<BigUint, Vec<String>>;
 
@@ -14,7 +13,7 @@ pub fn print_translations(
     num: &str,
     digits: &[char],
     start: usize,
-    words: List<&str>,
+    words: Vec<&str>,
     dict: &Dictionary,
 ) -> io::Result<()> {
     if start >= digits.len() {
@@ -29,21 +28,25 @@ pub fn print_translations(
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
-                print_translations(num, digits, i + 1, words.push_front(word), dict)?;
+                let mut partial_solution = words.clone();
+                partial_solution.push(word);
+                print_translations(num, digits, i + 1, partial_solution, dict)?;
             }
         }
     }
-    if !found_word && !words.first().map(|w| is_digit(w)).unwrap_or(false) {
+    if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
+        let mut partial_solution = words.clone();
         let digit = DIGITS[nth_digit(digits, start) as usize];
-        print_translations(num, digits, start + 1, words.push_front(digit), dict)
+        partial_solution.push(digit);
+        print_translations(num, digits, start + 1, partial_solution, dict)
     } else {
         Ok(())
     }
 }
 
-pub fn print_solution(num: &str, words: &List<&str>) {
+pub fn print_solution(num: &str, words: &[&str]) {
     print!("{}:", num);
-    for word in words.reverse().iter() {
+    for word in words {
         print!(" {}", word);
     }
     println!();

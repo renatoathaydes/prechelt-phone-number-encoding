@@ -7,6 +7,7 @@
       <sourceFolder url="file://$MODULE_DIR$/src/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/rust/phone_encoder/src" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/rust/benchmark_runner/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/src/rust/phone_encoder/benches" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/src/rust/phone_encoder/target" />
       <excludeFolder url="file://$MODULE_DIR$/src/rust/benchmark_runner/target" />
     </content>

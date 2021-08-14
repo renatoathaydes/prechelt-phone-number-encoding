@@ -1,8 +1,6 @@
 use std::env::args;
 use std::io;
 
-use rpds::List;
-
 mod lib;
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
@@ -21,7 +19,7 @@ fn main() -> io::Result<()> {
         let digits: Vec<_> = num.chars()
             .filter(|ch| ch.is_alphanumeric())
             .collect();
-        lib::print_translations(&num, &digits, 0, List::new(), &dict)?;
+        lib::print_translations(&num, &digits, 0, Vec::new(), &dict)?;
     }
     Ok(())
 }
