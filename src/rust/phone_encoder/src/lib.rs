@@ -45,11 +45,7 @@ pub fn print_translations(
 }
 
 pub fn print_solution(num: &str, words: &[&str]) {
-    print!("{}:", num);
-    for word in words {
-        print!(" {}", word);
-    }
-    println!();
+    println!("{}: {}", num, words.join(" "));
 }
 
 pub fn load_dict(words_file: String) -> io::Result<Dictionary> {
