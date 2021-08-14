@@ -22,7 +22,8 @@ fn main() -> io::Result<()> {
         let digits: Vec<_> = num.chars()
             .filter(|ch| ch.is_alphanumeric())
             .collect();
-        lib::print_translations(&num, &digits, 0, Vec::new(), &dict, &mut out)?;
+        let mut words = Vec::new();
+        lib::print_translations(&num, &digits, 0, &mut words, &dict, &mut out)?;
     }
     Ok(())
 }

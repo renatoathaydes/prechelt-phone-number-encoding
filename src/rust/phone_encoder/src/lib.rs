@@ -9,16 +9,16 @@ pub type Dictionary = HashMap<BigUint, Vec<String>>;
 
 static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
-pub fn print_translations(
+pub fn print_translations<'dict>(
     num: &str,
     digits: &[char],
     start: usize,
-    words: Vec<&str>,
-    dict: &Dictionary,
+    words: &mut Vec<&'dict str>,
+    dict: &'dict Dictionary,
     writer: &mut impl Write,
 ) -> io::Result<()> {
     if start >= digits.len() {
-        print_solution(num, &words, writer);
+        print_solution(num, words, writer);
         return Ok(());
     }
     let mut n: BigUint = 1u8.into();
@@ -29,24 +29,25 @@ pub fn print_translations(
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
-                let mut partial_solution = words.clone();
-                partial_solution.push(word);
-                print_translations(num, digits, i + 1, partial_solution, dict, writer)?;
+                words.push(word);
+                print_translations(num, digits, i + 1, words, dict, writer)?;
+                words.pop();
             }
         }
     }
     if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
-        let mut partial_solution = words.clone();
         let digit = DIGITS[nth_digit(digits, start) as usize];
-        partial_solution.push(digit);
-        print_translations(num, digits, start + 1, partial_solution, dict, writer)
+        words.push(digit);
+        let res = print_translations(num, digits, start + 1, words, dict, writer);
+        words.pop();
+        res
     } else {
         Ok(())
     }
 }
 
 pub fn print_solution(num: &str, words: &[&str], writer: &mut impl Write) {
-    write!(writer, "{}: {}\n", num, words.join(" ")).expect("Cannot print solution");
+    writeln!(writer, "{}: {}", num, words.join(" ")).expect("Cannot print solution");
 }
 
 pub fn load_dict(words_file: String) -> io::Result<Dictionary> {
