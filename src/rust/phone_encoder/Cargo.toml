@@ -10,3 +10,4 @@ license = ""
 [dependencies]
 #num-bigint = "0.4"
 num-bigint = { git = "https://github.com/rust-num/num-bigint.git", branch = "master" }
+rpds = "0.9.0"

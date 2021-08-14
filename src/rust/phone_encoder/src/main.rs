@@ -1,10 +1,11 @@
-use std::collections::HashMap;
+use std::collections::{HashMap};
 use std::env::args;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
 use num_bigint::BigUint;
+use rpds::List;
 
 type Dictionary = HashMap<BigUint, Vec<String>>;
 
@@ -26,7 +27,7 @@ fn main() -> io::Result<()> {
         let digits: Vec<_> = num.chars()
             .filter(|ch| ch.is_alphanumeric())
             .collect();
-        print_translations(&num, &digits, 0, Vec::new(), &dict)?;
+        print_translations(&num, &digits, 0, List::new(), &dict)?;
     }
     Ok(())
 }
@@ -35,7 +36,7 @@ fn print_translations(
     num: &str,
     digits: &[char],
     start: usize,
-    words: Vec<&str>,
+    words: List<&str>,
     dict: &Dictionary,
 ) -> io::Result<()> {
     if start >= digits.len() {
@@ -50,25 +51,21 @@ fn print_translations(
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
-                let mut partial_solution = words.clone();
-                partial_solution.push(word);
-                print_translations(num, digits, i + 1, partial_solution, dict)?;
+                print_translations(num, digits, i + 1, words.push_front(word), dict)?;
             }
         }
     }
-    if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
-        let mut partial_solution = words.clone();
+    if !found_word && !words.first().map(|w| is_digit(w)).unwrap_or(false) {
         let digit = DIGITS[nth_digit(digits, start) as usize];
-        partial_solution.push(digit);
-        print_translations(num, digits, start + 1, partial_solution, dict)
+        print_translations(num, digits, start + 1, words.push_front(digit), dict)
     } else {
         Ok(())
     }
 }
 
-fn print_solution(num: &str, words: &[&str]) {
+fn print_solution(num: &str, words: &List<&str>) {
     print!("{}:", num);
-    for word in words {
+    for word in words.reverse().iter() {
         print!(" {}", word);
     }
     println!();
