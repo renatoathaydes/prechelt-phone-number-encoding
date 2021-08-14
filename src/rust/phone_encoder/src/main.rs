@@ -22,20 +22,18 @@ fn main() -> io::Result<()> {
 
     let dict = load_dict(words_file)?;
 
-    for line in read_lines(input_file)? {
-        if let Ok(num) = line {
-            let digits: Vec<_> = num.chars()
-                .filter(|ch| ch.is_alphanumeric())
-                .collect();
-            print_translations(&num, &digits, 0, Vec::new(), &dict)?;
-        }
+    for num in read_lines(input_file)?.flatten() {
+        let digits: Vec<_> = num.chars()
+            .filter(|ch| ch.is_alphanumeric())
+            .collect();
+        print_translations(&num, &digits, 0, Vec::new(), &dict)?;
     }
     Ok(())
 }
 
 fn print_translations(
     num: &str,
-    digits: &Vec<char>,
+    digits: &[char],
     start: usize,
     words: Vec<&str>,
     dict: &Dictionary,
@@ -68,7 +66,7 @@ fn print_translations(
     }
 }
 
-fn print_solution(num: &str, words: &Vec<&str>) {
+fn print_solution(num: &str, words: &[&str]) {
     print!("{}:", num);
     for word in words {
         print!(" {}", word);
@@ -81,7 +79,7 @@ fn load_dict(words_file: String) -> io::Result<Dictionary> {
     let words = read_lines(words_file)?;
     for word in words.flatten() {
         let key = word_to_number(&word);
-        let words = dict.entry(key).or_insert_with(|| Vec::new());
+        let words = dict.entry(key).or_insert_with(Vec::new);
         words.push(word);
     }
     Ok(dict)
