@@ -3,6 +3,7 @@ use core::iter;
 use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main, Throughput};
 
 use phone_encoder::print_solution;
+use std::io::{self, BufWriter};
 
 static NUM_SRC: [&str; 7] = ["123456", "78901234", "567890", "123456789", "012345", "43210", "98765432"];
 
@@ -26,9 +27,11 @@ fn bench_print_solution(c: &mut Criterion) {
         let num = generate_data(1, &NUM_SRC).remove(0);
         let size = words.len() as u64;
         group.throughput(Throughput::Elements(size));
+        let stderr = io::stderr();
+        let mut out = BufWriter::new(stderr.lock());
         group.bench_with_input(BenchmarkId::from_parameter(size), &(num, words), |b, (num, words)| {
             b.iter(|| {
-                print_solution(num, words);
+                print_solution(num, words, &mut out);
             });
         });
     }

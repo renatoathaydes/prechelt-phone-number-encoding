@@ -1,5 +1,5 @@
 use std::env::args;
-use std::io;
+use std::io::{self, BufWriter};
 
 mod lib;
 
@@ -15,11 +15,14 @@ fn main() -> io::Result<()> {
 
     let dict = lib::load_dict(words_file)?;
 
+    let stdout = io::stdout();
+    let mut out = BufWriter::new(stdout.lock());
+
     for num in lib::read_lines(input_file)?.flatten() {
         let digits: Vec<_> = num.chars()
             .filter(|ch| ch.is_alphanumeric())
             .collect();
-        lib::print_translations(&num, &digits, 0, Vec::new(), &dict)?;
+        lib::print_translations(&num, &digits, 0, Vec::new(), &dict, &mut out)?;
     }
     Ok(())
 }

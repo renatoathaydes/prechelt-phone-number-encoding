@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, Write};
 use std::path::Path;
 
 use num_bigint::BigUint;
@@ -15,9 +15,10 @@ pub fn print_translations(
     start: usize,
     words: Vec<&str>,
     dict: &Dictionary,
+    writer: &mut impl Write,
 ) -> io::Result<()> {
     if start >= digits.len() {
-        print_solution(num, &words);
+        print_solution(num, &words, writer);
         return Ok(());
     }
     let mut n: BigUint = 1u8.into();
@@ -30,7 +31,7 @@ pub fn print_translations(
                 found_word = true;
                 let mut partial_solution = words.clone();
                 partial_solution.push(word);
-                print_translations(num, digits, i + 1, partial_solution, dict)?;
+                print_translations(num, digits, i + 1, partial_solution, dict, writer)?;
             }
         }
     }
@@ -38,14 +39,14 @@ pub fn print_translations(
         let mut partial_solution = words.clone();
         let digit = DIGITS[nth_digit(digits, start) as usize];
         partial_solution.push(digit);
-        print_translations(num, digits, start + 1, partial_solution, dict)
+        print_translations(num, digits, start + 1, partial_solution, dict, writer)
     } else {
         Ok(())
     }
 }
 
-pub fn print_solution(num: &str, words: &[&str]) {
-    println!("{}: {}", num, words.join(" "));
+pub fn print_solution(num: &str, words: &[&str], writer: &mut impl Write) {
+    write!(writer, "{}: {}\n", num, words.join(" ")).expect("Cannot print solution");
 }
 
 pub fn load_dict(words_file: String) -> io::Result<Dictionary> {
