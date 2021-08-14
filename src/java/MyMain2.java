@@ -25,10 +25,7 @@ public class MyMain2 {
 		List<String> phoneNumbers = loadPhoneNumbers(args.length > 1 ? args[1] : "tests/numbers.txt");
 
 		for (String number : phoneNumbers) {
-			List<String> solutions = pps.solve(number);
-			for (String solution : solutions) {
-				System.out.println(number + ": " + solution);
-			}
+			pps.solve(number);
 		}
 
 		// System.out.printf("Time: %d ms\n", System.currentTimeMillis() - t1);
@@ -66,6 +63,7 @@ public class MyMain2 {
 	private static class PhoneProblemSolver {
 
 		private WordTree dict;
+		private String phoneNumberStr;
 		private List<Integer> phoneNumber;
 		private int maxWordLength;
 		private int minWordLength;
@@ -83,29 +81,27 @@ public class MyMain2 {
 		 * Solves the phone encoding problem
 		 * 
 		 * @param phoneNumberStr string containing the phone number
-		 * @return list of solutions
 		 */
-		public List<String> solve(String phoneNumberStr) {
+		public void solve(String phoneNumberStr) {
+			this.phoneNumberStr = phoneNumberStr;
 			loadPhoneNumber(phoneNumberStr);
-			List<String> solutions = new ArrayList<>();
 
 			// If the phone number has only one digit and the shortest word has more than
 			// one letter,
 			// the only solution is the digit itself
 			if (phoneNumber.size() == 1 && minWordLength > 1) {
-				solutions.add(phoneNumber.get(0).toString());
-				return solutions;
+				System.out.println(phoneNumberStr + ": " + phoneNumber.get(0).toString());
+				return;
 			}
 
 			// If the phone number is empty or the phone number has more than one digits but
 			// less than the
 			// length of the shortest word, there is no solution
 			if (phoneNumber.size() == 0 || (phoneNumber.size() > 1 && phoneNumber.size() < minWordLength)) {
-				return solutions;
+				return;
 			}
 
-			solveRec(0, new ArrayList<>(), solutions, false);
-			return solutions;
+			solveRec(0, new ArrayList<>(), false);
 		}
 
 		/**
@@ -162,12 +158,10 @@ public class MyMain2 {
 		 * 
 		 * @param digitPos     position of the current phone number digit
 		 * @param partSolution current partial solution
-		 * @param solutions    list of completed solutions
 		 * @param lastWasDigit whether the last string added to the partial solution was
 		 *                     a digit or not
 		 */
-		private void solveRec(int digitPos, List<List<String>> partSolution, List<String> solutions,
-				boolean lastWasDigit) {
+		private void solveRec(int digitPos, List<List<String>> partSolution, boolean lastWasDigit) {
 			Map<Integer, List<String>> words = dict.findWords(phoneNumber, digitPos);
 			boolean wordsFound = !words.isEmpty();
 
@@ -184,13 +178,12 @@ public class MyMain2 {
 			for (Map.Entry<Integer, List<String>> entry : words.entrySet()) {
 				partSolution.add(entry.getValue());
 				if (digitPos + entry.getKey() == phoneNumber.size()) {
-					solutions.addAll(createSolutionList(partSolution));
+					printSolution(partSolution);
 				} else {
-					solveRec(digitPos + entry.getKey(), partSolution, solutions, !wordsFound);
+					solveRec(digitPos + entry.getKey(), partSolution, !wordsFound);
 				}
 				partSolution.remove(partSolution.size() - 1);
 			}
-
 		}
 
 		/**
@@ -200,10 +193,8 @@ public class MyMain2 {
 		 * @param solutionMatrix irregular matrix containing the encodings
 		 * @return list of solutions
 		 */
-		private List<String> createSolutionList(List<List<String>> solutionMatrix) {
-			List<String> solutionsList = new ArrayList<>();
-			createSolutionListRec(0, new ArrayList<>(), solutionMatrix, solutionsList);
-			return solutionsList;
+		private void printSolution(List<List<String>> solutionMatrix) {
+			printSolutionRec(0, new ArrayList<>(), solutionMatrix);
 		}
 
 		/**
@@ -216,16 +207,15 @@ public class MyMain2 {
 		 *                       number
 		 * @param solutionsList  list of solutions
 		 */
-		private void createSolutionListRec(int i, List<String> partSolution, List<List<String>> solutionMatrix,
-				List<String> solutionsList) {
+		private void printSolutionRec(int i, List<String> partSolution, List<List<String>> solutionMatrix) {
 			if (i == solutionMatrix.size()) {
-				solutionsList.add(joinWordList(partSolution));
+				System.out.println(phoneNumberStr + ": " + joinWordList(partSolution));
 				return;
 			}
 
 			for (String word : solutionMatrix.get(i)) {
 				partSolution.add(word);
-				createSolutionListRec(i + 1, partSolution, solutionMatrix, solutionsList);
+				printSolutionRec(i + 1, partSolution, solutionMatrix);
 				partSolution.remove(partSolution.size() - 1);
 			}
 		}
@@ -354,53 +344,37 @@ public class MyMain2 {
 				// I use Java 13 in my development environment so this looks ugly af
 				switch (letter) {
 				case 'j':
-					return 1;
 				case 'n':
-					return 1;
 				case 'q':
 					return 1;
 				case 'r':
-					return 2;
 				case 'w':
-					return 2;
 				case 'x':
 					return 2;
 				case 'd':
-					return 3;
 				case 's':
-					return 3;
 				case 'y':
 					return 3;
 				case 'f':
-					return 4;
 				case 't':
 					return 4;
 				case 'a':
-					return 5;
 				case 'm':
 					return 5;
 				case 'c':
-					return 6;
 				case 'i':
-					return 6;
 				case 'v':
 					return 6;
 				case 'b':
-					return 7;
 				case 'k':
-					return 7;
 				case 'u':
 					return 7;
 				case 'l':
-					return 8;
 				case 'o':
-					return 8;
 				case 'p':
 					return 8;
 				case 'g':
-					return 9;
 				case 'h':
-					return 9;
 				case 'z':
 					return 9;
 				default:

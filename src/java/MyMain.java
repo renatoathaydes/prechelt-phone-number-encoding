@@ -23,10 +23,7 @@ public class MyMain {
 		List<String> phoneNumbers = loadPhoneNumbers(args.length > 1 ? args[1] : "tests/numbers.txt");
 
 		for (String number : phoneNumbers) {
-			List<String> solutions = pps.solve(number);
-			for (String solution : solutions) {
-				System.out.println(number + ": " + solution);
-			}
+			pps.solve(number);
 		}
 
 		// System.out.printf("Time: %d ms\n", System.currentTimeMillis() - t1);
@@ -108,6 +105,7 @@ public class MyMain {
 	private static class PhoneProblemSolver {
 
 		private HashMap<Character, TreeSet<DictionaryWord>> dict;
+		private String phoneNumberStr;
 		private List<Integer> phoneNumber;
 		private char[][] charsPerDigit;
 		private int maxWordLength;
@@ -172,27 +170,25 @@ public class MyMain {
 		/**
 		 * Solves the phone encoding problem
 		 * @param phoneNumberStr string containing the phone number
-		 * @return list of solutions
 		 */
-		public List<String> solve(String phoneNumberStr) {
+		public void solve(String phoneNumberStr) {
+			this.phoneNumberStr = phoneNumberStr;
 			loadPhoneNumber(phoneNumberStr);
-			List<String> solutions = new ArrayList<>();
 
 			// If the phone number has only one digit and the shortest word has more than one letter,
 			// the only solution is the digit itself
 			if (phoneNumber.size() == 1 && minWordLength > 1) {
-				solutions.add(phoneNumber.get(0).toString());
-				return solutions;
+				System.out.println(phoneNumberStr + ": " + phoneNumber.get(0).toString());
+				return;
 			}
 
 			// If the phone number is empty or the phone number has more than one digits but less than the
 			// length of the shortest word, there is no solution
 			if (phoneNumber.size() == 0 || (phoneNumber.size() > 1 && phoneNumber.size() < minWordLength)) {
-				return solutions;
+				return;
 			}
 
-			solveRec(0, new ArrayList<>(), solutions, false);
-			return solutions;
+			solveRec(0, new ArrayList<>(), false);
 		}
 
 		/**
@@ -254,11 +250,9 @@ public class MyMain {
 		 * instead of having to do it twice.
 		 * @param digitPos position of the current phone number digit
 		 * @param partSolution current partial solution
-		 * @param solutions list of completed solutions
 		 * @param lastWasDigit whether the last string added to the partial solution was a digit or not
 		 */
-		private void solveRec(int digitPos, List<List<String>> partSolution, List<String> solutions,
-				boolean lastWasDigit) {
+		private void solveRec(int digitPos, List<List<String>> partSolution, boolean lastWasDigit) {
 			Map<Integer, List<String>> words = findWords(digitPos);
 			boolean wordsFound = !words.isEmpty();
 
@@ -275,45 +269,42 @@ public class MyMain {
 			for (Map.Entry<Integer, List<String>> entry : words.entrySet()) {
 				partSolution.add(entry.getValue());
 				if (digitPos + entry.getKey() == phoneNumber.size()) {
-					solutions.addAll(createSolutionList(partSolution));
+					printSolutions(partSolution);
 				} else {
-					solveRec(digitPos + entry.getKey(), partSolution, solutions, !wordsFound);
+					solveRec(digitPos + entry.getKey(), partSolution, !wordsFound);
 				}
 				partSolution.remove(partSolution.size() - 1);
 			}
-
 		}
 
 		/**
-		 * Transforms an irregular matrix containing the encodings of a phone number into a list
-		 * of solutions
+		 * Transforms an irregular matrix containing the encodings of a phone number
+		 * into a list of solutions and prints them
+		 * 
 		 * @param solutionMatrix irregular matrix containing the encodings
-		 * @return list of solutions
 		 */
-		private List<String> createSolutionList(List<List<String>> solutionMatrix) {
-			List<String> solutionsList = new ArrayList<>();
-			createSolutionListRec(0, new ArrayList<>(), solutionMatrix, solutionsList);
-			return solutionsList;
+		private void printSolutions(List<List<String>> solutionMatrix) {
+			printSolutionsRec(0, new ArrayList<>(), solutionMatrix);
 		}
 
 		/**
-		 * Recursively transforms an irregular matrix containing the encodings of a phone number into a list
-		 * of solutions 
-		 * @param i next x index in the matrix
-		 * @param partSolution current partial solution
-		 * @param solutionMatrix irregular matrix containing the encodings of a phone number
-		 * @param solutionsList list of solutions
+		 * Recursively transforms an irregular matrix containing the encodings of a
+		 * phone number into a list of solutions and prints them
+		 * 
+		 * @param i              next x index in the matrix
+		 * @param partSolution   current partial solution
+		 * @param solutionMatrix irregular matrix containing the encodings of a phone
+		 *                       number
 		 */
-		private void createSolutionListRec(int i, List<String> partSolution, List<List<String>> solutionMatrix,
-				List<String> solutionsList) {
+		private void printSolutionsRec(int i, List<String> partSolution, List<List<String>> solutionMatrix) {
 			if (i == solutionMatrix.size()) {
-				solutionsList.add(joinWordList(partSolution));
+				System.out.println(phoneNumberStr + ": " + joinWordList(partSolution));
 				return;
 			}
 
 			for (String word : solutionMatrix.get(i)) {
 				partSolution.add(word);
-				createSolutionListRec(i + 1, partSolution, solutionMatrix, solutionsList);
+				printSolutionsRec(i + 1, partSolution, solutionMatrix);
 				partSolution.remove(partSolution.size() - 1);
 			}
 		}
