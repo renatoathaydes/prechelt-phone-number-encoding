@@ -4,15 +4,9 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use lazy_static::lazy_static;
-use num_bigint::{BigUint, ToBigUint};
+use num_bigint::BigUint;
 
 type Dictionary = HashMap<BigUint, Vec<String>>;
-
-lazy_static! {
-    static ref ONE: BigUint = 1.to_biguint().unwrap();
-    static ref TEN: BigUint =10.to_biguint().unwrap();
-}
 
 static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
@@ -22,9 +16,9 @@ static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 /// due to the very different natures of Lisp and Rust.
 fn main() -> io::Result<()> {
     // drop itself from args
-    let mut args: Vec<_> = args().skip(1).collect();
-    let words_file: String = if !args.is_empty() { args.remove(0) } else { "tests/words.txt".into() };
-    let input_file: String = if !args.is_empty() { args.remove(0) } else { "tests/numbers.txt".into() };
+    let mut args = args().skip(1);
+    let words_file = args.next().unwrap_or_else(|| "tests/words.txt".into());
+    let input_file = args.next().unwrap_or_else(|| "tests/numbers.txt".into());
 
     let dict = load_dict(words_file)?;
 
@@ -50,10 +44,10 @@ fn print_translations(
         print_solution(num, &words);
         return Ok(());
     }
-    let mut n = ONE.clone();
+    let mut n: BigUint = 1u8.into();
     let mut found_word = false;
     for i in start..digits.len() {
-        n *= &*TEN;
+        n *= 10u8;
         n += nth_digit(digits, i);
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
@@ -85,12 +79,10 @@ fn print_solution(num: &str, words: &Vec<&str>) {
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
     let mut dict = HashMap::with_capacity(100);
     let words = read_lines(words_file)?;
-    for line in words {
-        if let Ok(word) = line {
-            let key = word_to_number(&word);
-            let words = dict.entry(key).or_insert_with(|| Vec::new());
-            words.push(word);
-        }
+    for word in words.flatten() {
+        let key = word_to_number(&word);
+        let words = dict.entry(key).or_insert_with(|| Vec::new());
+        words.push(word);
     }
     Ok(dict)
 }
@@ -104,19 +96,18 @@ fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 }
 
 fn word_to_number(word: &str) -> BigUint {
-    let mut n = ONE.clone();
+    let mut n: BigUint = 1u8.into();
     for ch in word.chars() {
         if ch.is_alphabetic() {
-            n *= &*TEN;
+            n *= 10u8;
             n += char_to_digit(ch);
         }
     }
     n
 }
 
-fn nth_digit(digits: &Vec<char>, i: usize) -> u8 {
-    let ch = digits.get(i).expect("index out of bounds");
-    ((*ch as usize) - ('0' as usize)) as u8
+fn nth_digit(digits: &[char], i: usize) -> u8 {
+    digits[i] as u8 - b'0'
 }
 
 fn is_digit(string: &str) -> bool {
