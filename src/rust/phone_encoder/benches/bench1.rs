@@ -1,9 +1,10 @@
 use core::iter;
+use std::io::{self, BufWriter};
 
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main, Throughput};
+use criterion::{BenchmarkId, black_box, Criterion, criterion_group, criterion_main, Throughput};
+use smallvec::SmallVec;
 
 use phone_encoder::print_solution;
-use std::io::{self, BufWriter};
 
 static NUM_SRC: [&str; 7] = ["123456", "78901234", "567890", "123456789", "012345", "43210", "98765432"];
 
@@ -38,5 +39,28 @@ fn bench_print_solution(c: &mut Criterion) {
     group.finish();
 }
 
-criterion_group!(benches, bench_print_solution);
+fn bench_vec_mut(c: &mut Criterion) {
+    let mut group = c.benchmark_group("vec_push_pop");
+    for words in [1, 10, 20, 30, 40, 50].iter()
+        .map(|size| generate_data(*size as usize, &WORD_SRC)) {
+        let size = words.len() as u64;
+        group.throughput(Throughput::Elements(size));
+        group.bench_with_input(BenchmarkId::from_parameter(size), &words, |b, words| {
+            b.iter(|| {
+                let mut vec = Vec::with_capacity(50);
+                for word in words {
+                    vec.push(black_box(word));
+                }
+                for _ in 0..words.len() {
+                    black_box(&vec);
+                    vec.pop();
+                }
+                vec
+            });
+        });
+    }
+    group.finish();
+}
+
+criterion_group!(benches, bench_vec_mut);
 criterion_main!(benches);

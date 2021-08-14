@@ -1,5 +1,6 @@
 use std::env::args;
 use std::io::{self, BufWriter};
+use smallvec::SmallVec;
 
 mod lib;
 
@@ -22,7 +23,7 @@ fn main() -> io::Result<()> {
         let digits: Vec<_> = num.chars()
             .filter(|ch| ch.is_alphanumeric())
             .collect();
-        let mut words = Vec::new();
+        let mut words: SmallVec<[&str; 32]> = SmallVec::with_capacity(50);
         lib::print_translations(&num, &digits, 0, &mut words, &dict, &mut out)?;
     }
     Ok(())

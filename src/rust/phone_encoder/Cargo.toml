@@ -10,6 +10,7 @@ license = ""
 [dependencies]
 #num-bigint = "0.4"
 num-bigint = { git = "https://github.com/rust-num/num-bigint.git", branch = "master" }
+smallvec = "1.6.1"
 
 [dev-dependencies]
 criterion = "0.3.5"

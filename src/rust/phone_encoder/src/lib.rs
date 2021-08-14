@@ -4,6 +4,7 @@ use std::io::{self, BufRead, Write};
 use std::path::Path;
 
 use num_bigint::BigUint;
+use smallvec::SmallVec;
 
 pub type Dictionary = HashMap<BigUint, Vec<String>>;
 
@@ -13,7 +14,7 @@ pub fn print_translations<'dict>(
     num: &str,
     digits: &[char],
     start: usize,
-    words: &mut Vec<&'dict str>,
+    words: &mut SmallVec<[&'dict str; 32]>,
     dict: &'dict Dictionary,
     writer: &mut impl Write,
 ) -> io::Result<()> {
@@ -46,7 +47,7 @@ pub fn print_translations<'dict>(
     }
 }
 
-pub fn print_solution(num: &str, words: &[&str], writer: &mut impl Write) {
+pub fn print_solution(num: &str, words: &SmallVec<[&str; 32]>, writer: &mut impl Write) {
     writeln!(writer, "{}: {}", num, words.join(" ")).expect("Cannot print solution");
 }
 
