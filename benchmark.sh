@@ -15,6 +15,7 @@ COMMANDS=(
   "java -cp build/java MyMain2"        # My second solution
   "sbcl --script src/lisp/main.lisp"  # Common Lisp
   "./phone_encoder"                   # Rust
+  "./phone_encoder_c"                 # C
 )
 
 echo "Compiling Java sources"
@@ -26,6 +27,10 @@ echo "Compiling Rust sources"
 cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_encoder ../../../
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
 cd ../../..
+
+echo "Compiling C sources"
+cd src/c && gcc -O3 phone_encoder.c word_tree.c vector.c -o phone_encoder_c && cp phone_encoder_c ../../
+cd ../..
 
 echo "Generating inputs"
 INPUTS=(phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
@@ -58,4 +63,4 @@ do
 done
 
 echo "Cleaning up"
-rm "${INPUTS[@]}" "$CHECK_FILE" phone_encoder benchmark_runner
+rm "${INPUTS[@]}" "$CHECK_FILE" phone_encoder_c phone_encoder benchmark_runner
