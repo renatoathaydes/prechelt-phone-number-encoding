@@ -27,9 +27,9 @@ int main(int argc, char * argv[]) {
 
 	FILE * dict_file = fopen(dict_file_name, "r");
 	if(dict_file == NULL) {
-      perror("Error opening dictionary file");
-      return(-1);
-   	}
+  		perror("Error opening dictionary file");
+  		return(-1);
+	}
 
 	fseek(dict_file, 0, SEEK_END);
 	long dict_file_size = ftell(dict_file);
@@ -49,9 +49,9 @@ int main(int argc, char * argv[]) {
 
 	FILE * numbers_file = fopen(numbers_file_name, "r");
 	if(numbers_file == NULL) {
-      perror("Error opening input file");
-      return(-1);
-   }
+  		perror("Error opening input file");
+ 		return(-1);
+   	}
 
    	fseek(numbers_file, 0, SEEK_END);
 	long numbers_file_size = ftell(numbers_file);

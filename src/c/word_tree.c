@@ -73,7 +73,6 @@ void wt_add_rec(word_tree_t * word_tree, char * word, char * cleaned_word, unsig
 		unsigned int cleaned_length) {
 	if (letter_pos == cleaned_length) {
 		vector_push(word_tree->words, word);
-		free(cleaned_word);
 		return;
 	}
 
@@ -91,6 +90,7 @@ void wt_add(word_tree_t * word_tree, char * word) {
 	int cleaned_length;
 	char * cleaned_word = wt_clean_word(word, &cleaned_length);
 	wt_add_rec(word_tree, word, cleaned_word, 0, cleaned_length);
+	free(cleaned_word);
 }
 
 void wt_find_words_rec(word_tree_t * word_tree, vector_t * phone_number, unsigned int digit_pos, 
