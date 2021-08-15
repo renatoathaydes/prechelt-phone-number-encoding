@@ -19,8 +19,8 @@ fn main() -> io::Result<()> {
     let mut out = BufWriter::new(stdout.lock());
 
     for num in lib::read_lines(input_file)?.flatten() {
-        let digits: Vec<_> = num.chars()
-            .filter(|ch| ch.is_alphanumeric())
+        let digits: Vec<_> = num.bytes()
+            .filter(|ch| ch.is_ascii_alphanumeric())
             .collect();
         let mut words = Vec::new();
         lib::print_translations(&num, &digits, 0, &mut words, &dict, &mut out)?;

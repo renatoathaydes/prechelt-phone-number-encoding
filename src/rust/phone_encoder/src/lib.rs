@@ -11,7 +11,7 @@ static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
 pub fn print_translations<'dict>(
     num: &str,
-    digits: &[char],
+    digits: &[u8],
     start: usize,
     words: &mut Vec<&'dict str>,
     dict: &'dict Dictionary,
@@ -71,35 +71,34 @@ pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
 
 fn word_to_number(word: &str) -> BigUint {
     let mut n: BigUint = 1u8.into();
-    for ch in word.chars() {
-        if ch.is_alphabetic() {
-            n *= 10u8;
-            n += char_to_digit(ch);
-        }
+    for ch in word.bytes().filter_map(char_to_digit) {
+        n *= 10u8;
+        n += ch;
     }
     n
 }
 
-fn nth_digit(digits: &[char], i: usize) -> u8 {
-    digits[i] as u8 - b'0'
+fn nth_digit(digits: &[u8], i: usize) -> u8 {
+    let ch = digits[i];
+    ch - b'0'
 }
 
 fn is_digit(string: &str) -> bool {
     string.len() == 1 && string.chars().next().unwrap().is_digit(10)
 }
 
-fn char_to_digit(ch: char) -> u8 {
-    match ch.to_ascii_lowercase() {
-        'e' => 0,
-        'j' | 'n' | 'q' => 1,
-        'r' | 'w' | 'x' => 2,
-        'd' | 's' | 'y' => 3,
-        'f' | 't' => 4,
-        'a' | 'm' => 5,
-        'c' | 'i' | 'v' => 6,
-        'b' | 'k' | 'u' => 7,
-        'l' | 'o' | 'p' => 8,
-        'g' | 'h' | 'z' => 9,
-        _ => panic!("invalid input: not a digit: {}", ch)
-    }
+fn char_to_digit(ch: u8) -> Option<u8> {
+    Some(match ch.to_ascii_lowercase() {
+        b'e' => 0,
+        b'j' | b'n' | b'q' => 1,
+        b'r' | b'w' | b'x' => 2,
+        b'd' | b's' | b'y' => 3,
+        b'f' | b't' => 4,
+        b'a' | b'm' => 5,
+        b'c' | b'i' | b'v' => 6,
+        b'b' | b'k' | b'u' => 7,
+        b'l' | b'o' | b'p' => 8,
+        b'g' | b'h' | b'z' => 9,
+        _ => return None
+    })
 }
