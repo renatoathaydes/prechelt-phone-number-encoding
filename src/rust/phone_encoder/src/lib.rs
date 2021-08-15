@@ -5,7 +5,7 @@ use std::io::{self, BufRead, Write};
 use std::iter::FromIterator;
 use std::path::Path;
 
-pub type Dictionary = HashMap<DigitBytes, Vec<String>>;
+pub type Dictionary = HashMap<DigitBytes, Vec<String>, ahash::RandomState>;
 
 static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
@@ -50,7 +50,9 @@ pub fn print_solution(num: &str, words: &[&str], writer: &mut impl Write) {
 }
 
 pub fn load_dict(words_file: String) -> io::Result<Dictionary> {
-    let mut dict = HashMap::with_capacity(100);
+    let mut dict: Dictionary = HashMap::with_capacity_and_hasher(
+        100,
+        ahash::RandomState::default());
     let words = read_lines(words_file)?;
     for word in words.flatten() {
         let key = word_to_number(&word);
