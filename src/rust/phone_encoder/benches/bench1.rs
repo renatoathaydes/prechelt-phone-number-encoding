@@ -1,11 +1,6 @@
 use core::iter;
 
-use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main, Throughput};
-
-use phone_encoder::print_solution;
-use std::io::{self, BufWriter};
-
-static NUM_SRC: [&str; 7] = ["123456", "78901234", "567890", "123456789", "012345", "43210", "98765432"];
+use criterion::{BenchmarkId, black_box, Criterion, criterion_group, criterion_main, Throughput};
 
 static WORD_SRC: [&str; 26] = ["avocado", "band", "cereal", "dialog", "egg", "french",
     "gorilla", "human", "india", "julia", "kilogram", "laureate", "magic", "nothing", "ostensible",
@@ -20,23 +15,22 @@ fn generate_data(size: usize, source: &[&'static str]) -> Vec<&'static str> {
     vec
 }
 
-fn bench_print_solution(c: &mut Criterion) {
-    let mut group = c.benchmark_group("phone_encoder");
+fn bench_iterate_over_string_characters(c: &mut Criterion) {
+    let mut group = c.benchmark_group("str_iter");
     for words in [1, 10, 20, 30, 40, 50].iter()
         .map(|size| generate_data(*size as usize, &WORD_SRC)) {
-        let num = generate_data(1, &NUM_SRC).remove(0);
         let size = words.len() as u64;
         group.throughput(Throughput::Elements(size));
-        let stderr = io::stderr();
-        let mut out = BufWriter::new(stderr.lock());
-        group.bench_with_input(BenchmarkId::from_parameter(size), &(num, words), |b, (num, words)| {
+        group.bench_with_input(BenchmarkId::from_parameter(size), &words, |b, words| {
             b.iter(|| {
-                print_solution(num, words, &mut out);
+                for ch in words.iter().flat_map(|w| w.chars()) {
+                    let _ = black_box(ch);
+                }
             });
         });
     }
     group.finish();
 }
 
-criterion_group!(benches, bench_print_solution);
+criterion_group!(benches, bench_iterate_over_string_characters);
 criterion_main!(benches);
