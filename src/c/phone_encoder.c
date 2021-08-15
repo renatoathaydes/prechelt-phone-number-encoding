@@ -87,7 +87,7 @@ void load_phone_number(char * phone_number_str, vector_t * phone_number) {
 }
 
 void print_word_list(vector_t * word_list) {
-	printf("%s: %s", strtok(current_number, "\n"), (char *) vector_get(word_list, 0));
+	printf("%s: %s", current_number, (char *) vector_get(word_list, 0));
 	for (int i = 1; i < word_list->length; i++) {
 		printf(" %s", (char *) vector_get(word_list, i));
 	}
@@ -162,10 +162,7 @@ void solve(char * phone_number_str) {
 	// If the phone number has only one digit and the shortest word has more than
 	// one letter, the only solution is the digit itself
 	if (phone_number->length == 1 && min_word_lenth > 1) {
-		printf("%s: %d\n", 
-			strtok(phone_number_str, "\n"),
-			* (int *) vector_get(phone_number, 0));
-
+		printf("%s: %d\n", phone_number_str, * (int *) vector_get(phone_number, 0));
 		vector_free(phone_number);
 		free(phone_number);
 		return;
