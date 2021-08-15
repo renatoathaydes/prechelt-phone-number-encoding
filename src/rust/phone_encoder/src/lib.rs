@@ -3,9 +3,7 @@ use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
-use num_bigint::BigUint;
-
-pub type Dictionary = HashMap<BigUint, Vec<String>>;
+pub type Dictionary = HashMap<Vec<u8>, Vec<String>>;
 
 static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
@@ -21,12 +19,11 @@ pub fn print_translations<'dict>(
         print_solution(num, words, writer);
         return Ok(());
     }
-    let mut n: BigUint = 1u8.into();
+    let mut key = Vec::with_capacity(8);
     let mut found_word = false;
     for i in start..digits.len() {
-        n *= 10u8;
-        n += nth_digit(digits, i);
-        if let Some(found_words) = dict.get(&n) {
+        key.push(nth_digit(digits, i));
+        if let Some(found_words) = dict.get(&key) {
             for word in found_words {
                 found_word = true;
                 words.push(word);
@@ -69,13 +66,8 @@ pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     Ok(io::BufReader::new(file).lines())
 }
 
-fn word_to_number(word: &str) -> BigUint {
-    let mut n: BigUint = 1u8.into();
-    for ch in word.bytes().filter_map(char_to_digit) {
-        n *= 10u8;
-        n += ch;
-    }
-    n
+fn word_to_number(word: &str) -> Vec<u8> {
+    word.bytes().filter_map(char_to_digit).collect()
 }
 
 fn nth_digit(digits: &[u8], i: usize) -> u8 {
