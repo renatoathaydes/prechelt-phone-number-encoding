@@ -3,9 +3,9 @@ use std::fs::File;
 use std::io::{self, BufRead, Write};
 use std::path::Path;
 
-use num_bigint::BigUint;
+use rug::Integer;
 
-pub type Dictionary = HashMap<BigUint, Vec<String>>;
+pub type Dictionary = HashMap<Integer, Vec<String>>;
 
 static DIGITS: [&str; 10] = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
 
@@ -21,7 +21,7 @@ pub fn print_translations<'dict>(
         print_solution(num, words, writer);
         return Ok(());
     }
-    let mut n: BigUint = 1u8.into();
+    let mut n = Integer::from(1u8);
     let mut found_word = false;
     for i in start..digits.len() {
         n *= 10u8;
@@ -69,8 +69,8 @@ pub fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     Ok(io::BufReader::new(file).lines())
 }
 
-fn word_to_number(word: &str) -> BigUint {
-    let mut n: BigUint = 1u8.into();
+fn word_to_number(word: &str) -> Integer {
+    let mut n = Integer::from(1u8);
     for ch in word.chars() {
         if ch.is_alphabetic() {
             n *= 10u8;
