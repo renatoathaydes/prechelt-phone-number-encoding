@@ -4,15 +4,10 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
 
-use lazy_static::lazy_static;
-use num_bigint::{BigUint, ToBigUint};
+use crypto_bigint::U192;
 
-type Dictionary = HashMap<BigUint, Vec<String>>;
-
-lazy_static! {
-    static ref ONE: BigUint = 1.to_biguint().unwrap();
-    static ref TEN: BigUint =10.to_biguint().unwrap();
-}
+type Dictionary = HashMap<U192, Vec<String>, ahash::RandomState>;
+const TEN: U192 = U192::from_u8(10);
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
@@ -28,8 +23,12 @@ fn main() -> io::Result<()> {
 
     for line in read_lines(input_file)? {
         if let Ok(num) = line {
-            let digits: Vec<_> = num.chars()
-                .filter(|ch| ch.is_alphanumeric())
+            let digits: Vec<u8> = num
+                .bytes()
+                .filter_map(|ch| match ch {
+                    b'0'..=b'9' => Some(ch - b'0'),
+                    _ => None,
+                })
                 .collect();
             print_translations(&num, &digits, 0, Vec::new(), &dict)?;
         }
@@ -39,7 +38,7 @@ fn main() -> io::Result<()> {
 
 fn print_translations(
     num: &str,
-    digits: &Vec<char>,
+    digits: &[u8],
     start: usize,
     words: Vec<&String>,
     dict: &Dictionary,
@@ -48,10 +47,11 @@ fn print_translations(
         print_solution(num, &words);
         return Ok(());
     }
-    let mut n = ONE.clone();
+    let mut n = U192::ONE;
     let mut found_word = false;
     for i in start..digits.len() {
-        n = &n * (&*TEN) + &nth_digit(digits, i);
+        let t = U192::from_u8(digits[i]);
+        n = n.wrapping_mul(&TEN).wrapping_add(&t);
         if let Some(found_words) = dict.get(&n) {
             for word in found_words {
                 found_word = true;
@@ -63,7 +63,7 @@ fn print_translations(
     }
     if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
         let mut partial_solution = words.clone();
-        let digit = nth_digit(digits, start).to_string();
+        let digit = digits[start].to_string();
         partial_solution.push(&digit);
         print_translations(num, digits, start + 1, partial_solution, dict)
     } else {
@@ -89,7 +89,10 @@ fn print_solution(num: &str, words: &Vec<&String>) {
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
-    let mut dict = HashMap::with_capacity(100);
+    let mut dict = HashMap::with_capacity_and_hasher(
+        100,
+        ahash::RandomState::default(),
+    );
     let words = read_lines(words_file)?;
     for line in words {
         if let Ok(word) = line {
@@ -109,37 +112,36 @@ fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     Ok(io::BufReader::new(file).lines())
 }
 
-fn word_to_number(word: &str) -> BigUint {
-    let mut n = ONE.clone();
-    for ch in word.chars() {
-        if ch.is_alphabetic() {
-            n = &n * (&*TEN) + &char_to_digit(ch);
-        }
-    }
-    n
-}
-
-fn nth_digit(digits: &Vec<char>, i: usize) -> BigUint {
-    let ch = digits.get(i).expect("index out of bounds");
-    ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
+fn word_to_number(word: &str) -> U192 {
+    word
+        .bytes()
+        .filter_map(char_to_digit)
+        .fold(U192::ONE, |n, d| {
+            let d = U192::from_u8(d);
+            n.wrapping_mul(&TEN).wrapping_add(&d)
+        })
 }
 
 fn is_digit(string: &str) -> bool {
     string.len() == 1 && string.chars().next().unwrap().is_digit(10)
 }
 
-fn char_to_digit(ch: char) -> u32 {
-    match ch.to_ascii_lowercase() {
-        'e' => 0,
-        'j' | 'n' | 'q' => 1,
-        'r' | 'w' | 'x' => 2,
-        'd' | 's' | 'y' => 3,
-        'f' | 't' => 4,
-        'a' | 'm' => 5,
-        'c' | 'i' | 'v' => 6,
-        'b' | 'k' | 'u' => 7,
-        'l' | 'o' | 'p' => 8,
-        'g' | 'h' | 'z' => 9,
-        _ => panic!("invalid input: not a digit: {}", ch)
+fn char_to_digit(mut ch: u8) -> Option<u8> {
+    if ch >= b'a' {
+        ch = ch - b'a' + b'A';
     }
+    let digit = match ch {
+        b'E' => 0,
+        b'J' | b'N' | b'Q' => 1,
+        b'R' | b'W' | b'X' => 2,
+        b'D' | b'S' | b'Y' => 3,
+        b'F' | b'T' => 4,
+        b'A' | b'M' => 5,
+        b'C' | b'I' | b'V' => 6,
+        b'B' | b'K' | b'U' => 7,
+        b'L' | b'O' | b'P' => 8,
+        b'G' | b'H' | b'Z' => 9,
+        _ => return None,
+    };
+    Some(digit)
 }
