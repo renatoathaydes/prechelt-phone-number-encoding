@@ -5,13 +5,17 @@
 ;; Run: (main "word-list-file-name" "phone-number-file-name")
 
 (declaim (optimize (speed 3) (debug 0) (safety 0)))
+(setq *block-compile-default* t)
 
+(declaim (ftype (function (string (unsigned-byte 8)) (unsigned-byte 8)) nth-digit))
 (defun nth-digit (digits i)
   "The i-th element of a character string of digits, as an integer 0 to 9."
   (- (char-code (char digits i)) #.(char-code #\0)))
 
+(declaim (ftype (function (base-char) (unsigned-byte 8)) char->digit))
 (defun char->digit (ch)
   "Convert a character to a digit according to the phone number rules."
+  (declare (type ))
   (ecase (char-downcase ch)
     ((#\e) 0)
     ((#\j #\n #\q) 1)
@@ -24,6 +28,7 @@
     ((#\l #\o #\p) 8)
     ((#\g #\h #\z) 9)))
 
+(declaim (ftype (function (string) integer)))
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
   (let ((n 1)) ; leading zero problem
@@ -36,6 +41,7 @@
   "A hash table mapping a phone number (integer) to a list of words from the
   input dictionary that produce that number.")
 
+(declaim (ftype (function (string string (unsigned-byte 8) list))))
 (defun print-translations (num digits &optional (start 0) (words nil))
   "Print each possible translation of NUM into a string of words.  DIGITS
   must be WORD with non-digits removed.  On recursive calls, START is the
