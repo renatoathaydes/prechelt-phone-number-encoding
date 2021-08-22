@@ -10,7 +10,7 @@ set -e
 
 COMMANDS=(
 #  "java -cp build/java Main"          # Java 1
-  "java -cp build/java Main2"         # Java 2
+#  "java -cp build/java Main2"         # Java 2
   "sbcl --script src/lisp/main-original.lisp"  # Common Lisp
   "sbcl --script src/lisp/main.lisp"  # Common Lisp
 #  "./phone_encoder"                   # Rust
@@ -27,12 +27,14 @@ cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_r
 cd ../../..
 
 echo "Generating inputs"
-INPUTS=(phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
+INPUTS=(phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt phones_200_000_with_empty.txt)
 rm "${INPUTS[@]}" > /dev/null 2>&1 || true
 java -cp "build/util" util.GeneratePhoneNumbers 1000 > phones_1000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 10000 > phones_10_000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 50000 > phones_50_000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 100000 "true" > phones_100_000_with_empty.txt
+java -cp "build/util" util.GeneratePhoneNumbers 100000 "true" > phones_100_000_with_empty.txt
+java -cp "build/util" util.GeneratePhoneNumbers 200000 "true" > phones_200_000_with_empty.txt
 
 CHECK_FILE="proc_out.txt"
 DEFAULT_INPUT="input.txt"
