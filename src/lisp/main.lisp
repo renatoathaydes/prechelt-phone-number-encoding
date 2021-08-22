@@ -7,6 +7,8 @@
 (declaim (optimize (speed 3) (debug 0) (safety 0)))
 (setq *block-compile-default* t)
 
+(declaim (inline nth-digit char->digit))
+
 (declaim (ftype (function (string (unsigned-byte 8)) (unsigned-byte 8)) nth-digit))
 (defun nth-digit (digits i)
   "The i-th element of a character string of digits, as an integer 0 to 9."
@@ -15,7 +17,6 @@
 (declaim (ftype (function (base-char) (unsigned-byte 8)) char->digit))
 (defun char->digit (ch)
   "Convert a character to a digit according to the phone number rules."
-  (declare (type ))
   (ecase (char-downcase ch)
     ((#\e) 0)
     ((#\j #\n #\q) 1)
@@ -32,6 +33,7 @@
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
   (let ((n 1)) ; leading zero problem
+    (declare (type integer n))
     (loop for i from 0 below (length word)
           for ch = (char word i) do
           (when (alpha-char-p ch) (setf n (+ (* 10 n) (char->digit ch)))))
