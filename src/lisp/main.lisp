@@ -6,18 +6,35 @@
 
 (declaim (optimize (speed 3) (debug 0) (safety 0)))
 
+(defun nth-digit (digits i)
+  "The i-th element of a character string of digits, as an integer 0 to 9."
+  (- (char-code (char digits i)) #.(char-code #\0)))
+
+(defun char->digit (ch)
+  "Convert a character to a digit according to the phone number rules."
+  (ecase (char-downcase ch)
+    ((#\e) 0)
+    ((#\j #\n #\q) 1)
+    ((#\r #\w #\x) 2)
+    ((#\d #\s #\y) 3)
+    ((#\f #\t) 4)
+    ((#\a #\m) 5)
+    ((#\c #\i #\v) 6)
+    ((#\b #\k #\u) 7)
+    ((#\l #\o #\p) 8)
+    ((#\g #\h #\z) 9)))
+
+(defun word->number (word)
+  "Translate a word (string) into a phone number, according to the rules."
+  (let ((n 1)) ; leading zero problem
+    (loop for i from 0 below (length word)
+          for ch = (char word i) do
+          (when (alpha-char-p ch) (setf n (+ (* 10 n) (char->digit ch)))))
+    n))
+
 (defglobal *dict* nil
   "A hash table mapping a phone number (integer) to a list of words from the
   input dictionary that produce that number.")
-
-(defun main (&optional (dict "tests/words.txt") (nums "tests/numbers.txt") (dict-size 100))
-  "Read the input file ¨DICT and load it into *dict*.  Then for each line in
-  NUMS, print all the translations of the number into a sequence of words,
-  according to the rules of translation."
-  (setf *dict* (load-dictionary dict dict-size))
-  (with-open-file (in nums)
-    (loop for num = (read-line in nil) while num do
-          (print-translations num (remove-if-not #'digit-char-p num)))))
 
 (defun print-translations (num digits &optional (start 0) (words nil))
   "Print each possible translation of NUM into a string of words.  DIGITS
@@ -60,30 +77,14 @@
         (push word (gethash (word->number word) table))))
     table))
 
-(defun word->number (word)
-  "Translate a word (string) into a phone number, according to the rules."
-  (let ((n 1)) ; leading zero problem
-    (loop for i from 0 below (length word)
-          for ch = (char word i) do
-          (when (alpha-char-p ch) (setf n (+ (* 10 n) (char->digit ch)))))
-    n))
 
-(defun nth-digit (digits i)
-  "The i-th element of a character string of digits, as an integer 0 to 9."
-  (- (char-code (char digits i)) #.(char-code #\0)))
-
-(defun char->digit (ch)
-  "Convert a character to a digit according to the phone number rules."
-  (ecase (char-downcase ch)
-    ((#\e) 0)
-    ((#\j #\n #\q) 1)
-    ((#\r #\w #\x) 2)
-    ((#\d #\s #\y) 3)
-    ((#\f #\t) 4)
-    ((#\a #\m) 5)
-    ((#\c #\i #\v) 6)
-    ((#\b #\k #\u) 7)
-    ((#\l #\o #\p) 8)
-    ((#\g #\h #\z) 9)))
+(defun main (&optional (dict "tests/words.txt") (nums "tests/numbers.txt") (dict-size 100))
+  "Read the input file ¨DICT and load it into *dict*.  Then for each line in
+  NUMS, print all the translations of the number into a sequence of words,
+  according to the rules of translation."
+  (setf *dict* (load-dictionary dict dict-size))
+  (with-open-file (in nums)
+    (loop for num = (read-line in nil) while num do
+          (print-translations num (remove-if-not #'digit-char-p num)))))
 
 (apply #'main (cdr sb-ext:*posix-argv*))
