@@ -5,6 +5,7 @@
 ;; Run: (main "word-list-file-name" "phone-number-file-name")
 ;; Some optimisation here and there
 (declaim (optimize (speed 3) (debug 0) (safety 0)))
+(setq *block-compile-default* t)
 
 (defglobal *dict* nil
   "A hash table mapping a phone number (integer) to a list of words from the
@@ -13,10 +14,13 @@
 (declaim (inline nth-digit char->digit))
 (defun nth-digit (digits i)
   "The i-th element of a character string of digits, as an integer 0 to 9."
+(declare (simple-string digits)
+	 (fixnum i))
   (- (char-code (char digits i)) #.(char-code #\0)))
 
 (defun char->digit (ch)
   "Convert a character to a digit according to the phone number rules."
+  (declare (base-char ch))
   (ecase (char-downcase ch)
     ((#\e)         0)
     ((#\j #\n #\q) 1)
@@ -56,8 +60,9 @@
   strings to integers would map R to 2 and ER to 02, which of course is
   the same integer as 2.  Therefore we prepend a 1 to every number, and R
   becomes 12 and ER becomes 102."
-  (declare (fixnum start)
-           (simple-string digits))
+  (declare (fixnum num start)
+           (simple-string digits)
+	   (list words))
   (if (>= start (length digits))
       (format t "~a:~{ ~a~}~%" num (reverse words))
       (loop with found-word = nil
@@ -76,6 +81,8 @@
   "Create a hashtable from the file of words (one per line).  Takes a hint
   for the initial hashtable size.  Each key is the phone number for a word;
   each value is a list of words with that phone number."
+  (declare (simple-string file)
+	   (fixnum size))
   (with-open-file (in file :external-format :ascii)
       (loop with table = (make-hash-table :test #'eql :size size)
             for  word  = (read-line in nil)
@@ -84,6 +91,7 @@
 
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
+  (declare (simple-string word))
   (loop with n = 1 ; leading zero problem
         for i from 0 below (length word)
         for ch of-type base-char = (char word i)
