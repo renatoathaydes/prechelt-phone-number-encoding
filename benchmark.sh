@@ -9,10 +9,11 @@ set -e
 #
 
 COMMANDS=(
-  "java -cp build/java Main"          # Java 1
+#  "java -cp build/java Main"          # Java 1
   "java -cp build/java Main2"         # Java 2
+  "sbcl --script src/lisp/main-original.lisp"  # Common Lisp
   "sbcl --script src/lisp/main.lisp"  # Common Lisp
-  "./phone_encoder"                   # Rust
+#  "./phone_encoder"                   # Rust
 )
 
 echo "Compiling Java sources"
