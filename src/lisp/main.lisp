@@ -4,6 +4,8 @@
 ;; each phone number can be expressed as a list of words.
 ;; Run: (main "word-list-file-name" "phone-number-file-name")
 
+(declaim (optimize (speed 3) (debug 0) (safety 0)))
+
 (defglobal *dict* nil
   "A hash table mapping a phone number (integer) to a list of words from the
   input dictionary that produce that number.")
