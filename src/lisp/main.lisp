@@ -64,16 +64,22 @@
   becomes 12 and ER becomes 102."
   (if (>= start (length digits))
       (format t "~a:~{ ~a~}~%" num (reverse words))
-      (let ((found-word nil)
-            (n 1)) ; leading zero problem
-        (loop for i from start below (length digits) do
-              (setf n (+ (* 10 n) (nth-digit digits i)))
-              (loop for word in (gethash n *dict*) do
-                 (setf found-word t)
-                 (print-translations num digits (+ 1 i) (cons word words))))
-        (when (and (not found-word) (not (numberp (first words))))
-           (print-translations num digits (+ start 1)
-                               (cons (nth-digit digits start) words))))))
+      (let ((next-iterations
+              (do ((i start (1+ i)) ; var, initial value, increment per iteration
+                   (n 1)
+                   (max (length digits))
+                   (result nil))
+                  ((>= i max) result) ; exit condition and return-value
+                (setq n (+ (* 10 n) (nth-digit digits i)))
+                (let ((next-words (gethash n *dict*)))
+                  (when next-words (push (list (1+ i) next-words) result))))))
+        (if next-iterations
+            (loop for (i next-words) in next-iterations do
+              (loop for word in next-words do
+                (print-translations num digits i (cons word words))))
+            (when (not (numberp (first words)))
+              (print-translations num digits (+ start 1)
+                                  (cons (nth-digit digits start) words)))))))
 
 (defun load-dictionary (file size)
   "Create a hashtable from the file of words (one per line).  Takes a hint
