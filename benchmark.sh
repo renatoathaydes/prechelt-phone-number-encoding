@@ -21,7 +21,7 @@ javac src/java/*.java -d build/java
 javac src/java/util/*.java -d build/util
 
 echo "Compiling Rust sources"
-cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_encoder ../../../
+cd src/rust/phone_encoder && RUSTFLAGS="-Cprofile-use=$(pwd)/merged.profdata" cargo build --release && cp target/release/phone_encoder ../../../
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
 cd ../../..
 

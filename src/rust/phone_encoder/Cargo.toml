@@ -8,5 +8,10 @@ license = ""
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num-bigint = "0.4"
-lazy_static = "1.4.0"
+fnv = "1.0.7"
+ibig = "0.3.2"
+
+[profile.release]
+panic = "abort"
+opt-level = 3
+lto = "fat"
