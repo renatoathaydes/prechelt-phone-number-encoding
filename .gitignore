@@ -6,5 +6,5 @@ target/
 !input.txt
 !output.txt
 Cargo.lock
-phone_encoder
-benchmark_runner
+/phone_encoder
+/benchmark_runner
