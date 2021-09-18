@@ -9,26 +9,16 @@
 
 (declaim (inline nth-digit char->digit digitp))
 
-(declaim (ftype (function (simple-string (unsigned-byte 8)) string) nth-digit))
+(declaim (ftype (function (simple-string (unsigned-byte 8)) base-char) nth-digit))
 (defun nth-digit (digits i)
   "The i-th element of a character string of digits, as an integer 0 to 9."
-  (ecase (char digits i)
-    ((#\0) "0")
-    ((#\1) "1")
-    ((#\2) "2")
-    ((#\3) "3")
-    ((#\4) "4")
-    ((#\5) "5")
-    ((#\6) "6")
-    ((#\7) "7")
-    ((#\8) "8")
-    ((#\9) "9")))
+  (char digits i))
 
 (defmacro scase (s &rest cases)
   (cons 'or (loop for c in cases
                   collect (list 'if (list 'string= s (car c)) (cadr c) ))))
 
-(declaim (ftype (simple-string) boolean) digitp)
+;; (declaim (ftype (function (simple-string) boolean)) digitp)
 (defun digitp (s)
   (and
    (= 1 (length s))
@@ -44,28 +34,43 @@
           ("8" t)
           ("9" t))))
 
-(declaim (ftype (function (base-char) simple-string) char->digit))
+(declaim (ftype (function (base-char) base-char) char->digit))
 (defun char->digit (ch)
   "Convert a character to a digit according to the phone number rules."
   (ecase (char-downcase ch)
-    ((#\e) "0")
-    ((#\j #\n #\q) "1")
-    ((#\r #\w #\x) "2")
-    ((#\d #\s #\y) "3")
-    ((#\f #\t) "4")
-    ((#\a #\m) "5")
-    ((#\c #\i #\v) "6")
-    ((#\b #\k #\u) "7")
-    ((#\l #\o #\p) "8")
-    ((#\g #\h #\z) "9")))
+    ((#\e) #\0)
+    ((#\j #\n #\q) #\1)
+    ((#\r #\w #\x) #\2)
+    ((#\d #\s #\y) #\3)
+    ((#\f #\t) #\4)
+    ((#\a #\m) #\5)
+    ((#\c #\i #\v) #\6)
+    ((#\b #\k #\u) #\7)
+    ((#\l #\o #\p) #\8)
+    ((#\g #\h #\z) #\9)))
+
+(defun make-key ()
+  (make-string 51 :initial-element #\x))
+
+(defun hash-key (key)
+  (let ((end (position #\x key)))
+    (sxhash (subseq key 0 end))))
+
+(defun compare-keys (k1 k2)
+  (let ((end1 (position #\x k1))
+        (end2 (position #\x k2)))
+    (when (= end1 end2)
+      (equal (subseq k1 0 end1) (subseq k2 0 end2)))))
 
 (declaim (ftype (function (simple-string) simple-string)))
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
-  (let ((n ""))
+  (let ((n (make-key)) (j 0))
     (loop for i from 0 below (length word)
           for ch = (char word i) do
-          (when (alpha-char-p ch) (setq n (concatenate 'string n (char->digit ch)))))
+            (when (alpha-char-p ch)
+              (setf (aref n j) (char->digit ch))
+              (setq j (1+ j))))
     n))
 
 (defglobal *dict* nil
@@ -95,11 +100,11 @@
       (format t "~a:~{ ~a~}~%" num (reverse words))
       (let ((next-iterations
               (do ((i start (1+ i)) ; var, initial value, increment per iteration
-                   (n "")
+                   (n (make-key))
                    (max (length digits))
                    (result nil))
                   ((>= i max) result) ; exit condition and return-value
-                (setq n (concatenate 'string n (nth-digit digits i)))
+                (setf (aref n (- i start)) (nth-digit digits i))
                 (let ((next-words (gethash n *dict*)))
                   (when next-words (push (list (1+ i) next-words) result))))))
         (if next-iterations
@@ -108,13 +113,13 @@
                 (print-translations num digits i (cons word words))))
             (when (not (digitp (first words)))
               (print-translations num digits (+ start 1)
-                                  (cons (nth-digit digits start) words)))))))
+                                  (cons (make-string 1 :initial-element (nth-digit digits start)) words)))))))
 
 (defun load-dictionary (file size)
   "Create a hashtable from the file of words (one per line).  Takes a hint
   for the initial hashtable size.  Each key is the phone number for a word;
   each value is a list of words with that phone number."
-  (let ((table (make-hash-table :test #'equal :size size)))
+  (let ((table (make-hash-table :test #'compare-keys :hash-function #'hash-key :size size)))
     (with-open-file (in file)
       (loop for word = (read-line in nil) while word do
         (push word (gethash (word->number word) table))))
