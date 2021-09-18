@@ -18,7 +18,7 @@
   (cons 'or (loop for c in cases
                   collect (list 'if (list 'string= s (car c)) (cadr c) ))))
 
-;; (declaim (ftype (function (simple-string) boolean)) digitp)
+(declaim (ftype (function (simple-string) boolean) digitp))
 (defun digitp (s)
   (and
    (= 1 (length s))
@@ -49,20 +49,23 @@
     ((#\l #\o #\p) #\8)
     ((#\g #\h #\z) #\9)))
 
+(declaim (ftype (function () simple-string) make-key))
 (defun make-key ()
   (make-string 51 :initial-element #\x))
 
+(declaim (ftype (function (simple-string) fixnum) hash-key))
 (defun hash-key (key)
   (let ((end (position #\x key)))
     (sxhash (subseq key 0 end))))
 
+(declaim (ftype (function (simple-string simple-string) boolean) compare-keys))
 (defun compare-keys (k1 k2)
   (let ((end1 (position #\x k1))
         (end2 (position #\x k2)))
     (when (= end1 end2)
       (equal (subseq k1 0 end1) (subseq k2 0 end2)))))
 
-(declaim (ftype (function (simple-string) simple-string)))
+(declaim (ftype (function (simple-string) simple-string) word->number))
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
   (let ((n (make-key)) (j 0))
@@ -77,7 +80,7 @@
   "A hash table mapping a phone number (integer) to a list of words from the
   input dictionary that produce that number.")
 
-(declaim (ftype (function (string string (unsigned-byte 8) list))))
+(declaim (ftype (function (string string &optional (unsigned-byte 8) list)) print-translations))
 (defun print-translations (num digits &optional (start 0) (words nil))
   "Print each possible translation of NUM into a string of words.  DIGITS
   must be WORD with non-digits removed.  On recursive calls, START is the
