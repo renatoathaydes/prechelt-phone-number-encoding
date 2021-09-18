@@ -7,80 +7,43 @@
 (declaim (optimize (speed 3) (debug 0) (safety 0)))
 (setq *block-compile-default* t)
 
-(declaim (inline nth-digit char->digit digitp))
+(declaim (inline nth-digit char->digit))
 
-(declaim (ftype (function (simple-string (unsigned-byte 8)) base-char) nth-digit))
+(declaim (ftype (function (string (unsigned-byte 8)) (unsigned-byte 8)) nth-digit))
 (defun nth-digit (digits i)
   "The i-th element of a character string of digits, as an integer 0 to 9."
-  (char digits i))
+  (- (char-code (char digits i)) #.(char-code #\0)))
 
-(defmacro scase (s &rest cases)
-  (cons 'or (loop for c in cases
-                  collect (list 'if (list 'string= s (car c)) (cadr c) ))))
-
-(declaim (ftype (function (simple-string) boolean) digitp))
-(defun digitp (s)
-  (and
-   (= 1 (length s))
-   (scase s
-          ("0" t)
-          ("1" t)
-          ("2" t)
-          ("3" t)
-          ("4" t)
-          ("5" t)
-          ("6" t)
-          ("7" t)
-          ("8" t)
-          ("9" t))))
-
-(declaim (ftype (function (base-char) base-char) char->digit))
+(declaim (ftype (function (base-char) (unsigned-byte 8)) char->digit))
 (defun char->digit (ch)
   "Convert a character to a digit according to the phone number rules."
   (ecase (char-downcase ch)
-    ((#\e) #\0)
-    ((#\j #\n #\q) #\1)
-    ((#\r #\w #\x) #\2)
-    ((#\d #\s #\y) #\3)
-    ((#\f #\t) #\4)
-    ((#\a #\m) #\5)
-    ((#\c #\i #\v) #\6)
-    ((#\b #\k #\u) #\7)
-    ((#\l #\o #\p) #\8)
-    ((#\g #\h #\z) #\9)))
+    ((#\e) 0)
+    ((#\j #\n #\q) 1)
+    ((#\r #\w #\x) 2)
+    ((#\d #\s #\y) 3)
+    ((#\f #\t) 4)
+    ((#\a #\m) 5)
+    ((#\c #\i #\v) 6)
+    ((#\b #\k #\u) 7)
+    ((#\l #\o #\p) 8)
+    ((#\g #\h #\z) 9)))
 
-(declaim (ftype (function () simple-string) make-key))
-(defun make-key ()
-  (make-string 51 :initial-element #\x))
-
-(declaim (ftype (function (simple-string) fixnum) hash-key))
-(defun hash-key (key)
-  (let ((end (position #\x key)))
-    (sxhash (subseq key 0 end))))
-
-(declaim (ftype (function (simple-string simple-string) boolean) compare-keys))
-(defun compare-keys (k1 k2)
-  (let ((end1 (position #\x k1))
-        (end2 (position #\x k2)))
-    (when (= end1 end2)
-      (equal (subseq k1 0 end1) (subseq k2 0 end2)))))
-
-(declaim (ftype (function (simple-string) simple-string) word->number))
+(declaim (ftype (function (string) integer)))
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
-  (let ((n (make-key)) (j 0))
+  (let ((n 1)) ; leading zero problem
+    (declare (type integer n))
     (loop for i from 0 below (length word)
           for ch = (char word i) do
-            (when (alpha-char-p ch)
-              (setf (aref n j) (char->digit ch))
-              (setq j (1+ j))))
+          (when (alpha-char-p ch) (setf n (+ (* 10 n) (char->digit ch)))))
     n))
 
 (defglobal *dict* nil
   "A hash table mapping a phone number (integer) to a list of words from the
   input dictionary that produce that number.")
 
-(declaim (ftype (function (string string &optional (unsigned-byte 8) list)) print-translations))
+(declaim (ftype (function (string string (unsigned-byte 8) list))))
 (defun print-translations (num digits &optional (start 0) (words nil))
   "Print each possible translation of NUM into a string of words.  DIGITS
   must be WORD with non-digits removed.  On recursive calls, START is the
@@ -103,26 +66,26 @@
       (format t "~a:~{ ~a~}~%" num (reverse words))
       (let ((next-iterations
               (do ((i start (1+ i)) ; var, initial value, increment per iteration
-                   (n (make-key))
+                   (n 1)
                    (max (length digits))
                    (result nil))
                   ((>= i max) result) ; exit condition and return-value
-                (setf (aref n (- i start)) (nth-digit digits i))
+                (setq n (+ (* 10 n) (nth-digit digits i)))
                 (let ((next-words (gethash n *dict*)))
                   (when next-words (push (list (1+ i) next-words) result))))))
         (if next-iterations
             (loop for (i next-words) in next-iterations do
               (loop for word in next-words do
                 (print-translations num digits i (cons word words))))
-            (when (not (digitp (first words)))
+            (when (not (numberp (first words)))
               (print-translations num digits (+ start 1)
-                                  (cons (make-string 1 :initial-element (nth-digit digits start)) words)))))))
+                                  (cons (nth-digit digits start) words)))))))
 
 (defun load-dictionary (file size)
   "Create a hashtable from the file of words (one per line).  Takes a hint
   for the initial hashtable size.  Each key is the phone number for a word;
   each value is a list of words with that phone number."
-  (let ((table (make-hash-table :test #'compare-keys :hash-function #'hash-key :size size)))
+  (let ((table (make-hash-table :test #'eql :size size)))
     (with-open-file (in file)
       (loop for word = (read-line in nil) while word do
         (push word (gethash (word->number word) table))))
