@@ -7,36 +7,65 @@
 (declaim (optimize (speed 3) (debug 0) (safety 0)))
 (setq *block-compile-default* t)
 
-(declaim (inline nth-digit char->digit))
+(declaim (inline nth-digit char->digit digitp))
 
-(declaim (ftype (function (string (unsigned-byte 8)) (unsigned-byte 8)) nth-digit))
+(declaim (ftype (function (simple-string (unsigned-byte 8)) string) nth-digit))
 (defun nth-digit (digits i)
   "The i-th element of a character string of digits, as an integer 0 to 9."
-  (- (char-code (char digits i)) #.(char-code #\0)))
+  (ecase (char digits i)
+    ((#\0) "0")
+    ((#\1) "1")
+    ((#\2) "2")
+    ((#\3) "3")
+    ((#\4) "4")
+    ((#\5) "5")
+    ((#\6) "6")
+    ((#\7) "7")
+    ((#\8) "8")
+    ((#\9) "9")))
 
-(declaim (ftype (function (base-char) (unsigned-byte 8)) char->digit))
+(defmacro scase (s &rest cases)
+  (cons 'or (loop for c in cases
+                  collect (list 'if (list 'string= s (car c)) (cadr c) ))))
+
+(declaim (ftype (simple-string) boolean) digitp)
+(defun digitp (s)
+  (and
+   (= 1 (length s))
+   (scase s
+          ("0" t)
+          ("1" t)
+          ("2" t)
+          ("3" t)
+          ("4" t)
+          ("5" t)
+          ("6" t)
+          ("7" t)
+          ("8" t)
+          ("9" t))))
+
+(declaim (ftype (function (base-char) simple-string) char->digit))
 (defun char->digit (ch)
   "Convert a character to a digit according to the phone number rules."
   (ecase (char-downcase ch)
-    ((#\e) 0)
-    ((#\j #\n #\q) 1)
-    ((#\r #\w #\x) 2)
-    ((#\d #\s #\y) 3)
-    ((#\f #\t) 4)
-    ((#\a #\m) 5)
-    ((#\c #\i #\v) 6)
-    ((#\b #\k #\u) 7)
-    ((#\l #\o #\p) 8)
-    ((#\g #\h #\z) 9)))
+    ((#\e) "0")
+    ((#\j #\n #\q) "1")
+    ((#\r #\w #\x) "2")
+    ((#\d #\s #\y) "3")
+    ((#\f #\t) "4")
+    ((#\a #\m) "5")
+    ((#\c #\i #\v) "6")
+    ((#\b #\k #\u) "7")
+    ((#\l #\o #\p) "8")
+    ((#\g #\h #\z) "9")))
 
-(declaim (ftype (function (string) integer)))
+(declaim (ftype (function (simple-string) simple-string)))
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
-  (let ((n 1)) ; leading zero problem
-    (declare (type integer n))
+  (let ((n ""))
     (loop for i from 0 below (length word)
           for ch = (char word i) do
-          (when (alpha-char-p ch) (setf n (+ (* 10 n) (char->digit ch)))))
+          (when (alpha-char-p ch) (setq n (concatenate 'string n (char->digit ch)))))
     n))
 
 (defglobal *dict* nil
@@ -66,18 +95,18 @@
       (format t "~a:~{ ~a~}~%" num (reverse words))
       (let ((next-iterations
               (do ((i start (1+ i)) ; var, initial value, increment per iteration
-                   (n 1)
+                   (n "")
                    (max (length digits))
                    (result nil))
                   ((>= i max) result) ; exit condition and return-value
-                (setq n (+ (* 10 n) (nth-digit digits i)))
+                (setq n (concatenate 'string n (nth-digit digits i)))
                 (let ((next-words (gethash n *dict*)))
                   (when next-words (push (list (1+ i) next-words) result))))))
         (if next-iterations
             (loop for (i next-words) in next-iterations do
               (loop for word in next-words do
                 (print-translations num digits i (cons word words))))
-            (when (not (numberp (first words)))
+            (when (not (digitp (first words)))
               (print-translations num digits (+ start 1)
                                   (cons (nth-digit digits start) words)))))))
 
@@ -85,7 +114,7 @@
   "Create a hashtable from the file of words (one per line).  Takes a hint
   for the initial hashtable size.  Each key is the phone number for a word;
   each value is a list of words with that phone number."
-  (let ((table (make-hash-table :test #'eql :size size)))
+  (let ((table (make-hash-table :test #'equal :size size)))
     (with-open-file (in file)
       (loop for word = (read-line in nil) while word do
         (push word (gethash (word->number word) table))))
