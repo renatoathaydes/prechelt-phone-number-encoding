@@ -10,7 +10,7 @@
 
 ;; (declaim (inline nth-digit nth-digit-string char->digit))
 
-(declaim (ftype (function (string (unsigned-byte 8)) (bit-vector)) nth-digit))
+(declaim (ftype (function (simple-string (unsigned-byte 8)) (bit-vector)) nth-digit))
 (defun nth-digit (digits i)
   "The i-th element of a character string of digits, as a bit-vector representing 0 to 9."
   (ecase (char digits i)
@@ -25,7 +25,7 @@
     (#\8 #*1000)
     (#\9 #*1001)))
 
-(declaim (ftype (function (string (unsigned-byte 8)) string) nth-digit-string))
+(declaim (ftype (function (simple-string (unsigned-byte 8)) simple-string) nth-digit-string))
 (defun nth-digit-string (digits i)
   "The i-th element of a character string of digits, as an integer 0 to 9."
   (string (char digits i)))
@@ -59,14 +59,14 @@
    (and (>= b #.(char-code #\a)) (<= b #.(char-code #\z)))
    (and (>= b #.(char-code #\A)) (<= b #.(char-code #\Z)))))
 
-(declaim (ftype (function (string) boolean) digitp))
+(declaim (ftype (function (simple-string) boolean) digitp))
 (defun digitp (s)
   (if (and (eq 1 (length s))
            (let ((ch (elt s 0))) (digit-char-p ch)))
       t
       nil))
 
-(declaim (ftype (function (string) (bit-vector))))
+(declaim (ftype (function (simple-string) (bit-vector)) word->number))
 (defun word->number (word)
   "Translate a word (string) into a phone number, according to the rules."
   (let ((n (make-sequence 'bit-vector #.(* 25 8) :initial-element 1))
@@ -85,7 +85,7 @@
   "A hash table mapping a phone number (integer) to a list of words from the
   input dictionary that produce that number.")
 
-(declaim (ftype (function (string string (unsigned-byte 8) list))))
+(declaim (ftype (function (simple-string simple-string &optional (unsigned-byte 8) list)) print-translations))
 (defun print-translations (num digits &optional (start 0) (words nil))
   "Print each possible translation of NUM into a string of words.  DIGITS
   must be WORD with non-digits removed.  On recursive calls, START is the
@@ -114,9 +114,9 @@
                 (setf (subseq key key-start key-end) (nth-digit digits i))
                 (loop for word in (gethash key *dict*) do
                   (setf found-word t)
-                  (print-translations num digits (+ 1 i) (cons word words))))
+                  (print-translations num digits (1+ i) (cons word words))))
         (when (and (not found-word) (not (digitp (first words))))
-          (print-translations num digits (+ start 1)
+          (print-translations num digits (1+ start)
                               (cons (nth-digit-string digits start) words))))))
 
 (defun load-dictionary (file size)
@@ -124,7 +124,7 @@
   for the initial hashtable size.  Each key is the phone number for a word;
   each value is a list of words with that phone number."
   (let ((table (make-hash-table :test #'equal :size size)))
-    (with-open-file (in file)
+    (with-open-file (in file :external-format :ASCII)
       (loop for word = (read-line in nil) while word do
         (push word (gethash (word->number word) table))))
     table))
