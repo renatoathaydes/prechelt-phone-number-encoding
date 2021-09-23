@@ -9,10 +9,10 @@ set -e
 #
 
 COMMANDS=(
-  "java -cp build/java Main"          # Java 1
   "java -cp build/java Main2"         # Java 2
-  "sbcl --script src/lisp/main.lisp"  # Common Lisp
-  "./phone_encoder"                   # Rust
+  "sbcl --script src/lisp/main.fasl"  # Common Lisp
+  "./phone_encoder_bugaevc"           # Rust v4 (mostly by bugaevc)
+  "./phone_encoder"                   # Rust (fastest from https://renato.athaydes.com/posts/how-to-write-fast-rust-code.html)
 )
 
 echo "Compiling Java sources"
@@ -25,13 +25,20 @@ cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_en
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
 cd ../../..
 
+echo "Compiling Lisp sources"
+cd src/lisp/
+sbcl --noinform --eval "(compile-file \"main.lisp\")" --eval "(quit)"
+cd ../..
+
 echo "Generating inputs"
-INPUTS=(phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
+INPUTS=(phones_1000.txt phones_10_000.txt phones_50_000.txt
+        phones_100_000_with_empty.txt phones_200_000_with_empty.txt)
 rm "${INPUTS[@]}" > /dev/null 2>&1 || true
 java -cp "build/util" util.GeneratePhoneNumbers 1000 > phones_1000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 10000 > phones_10_000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 50000 > phones_50_000.txt
 java -cp "build/util" util.GeneratePhoneNumbers 100000 "true" > phones_100_000_with_empty.txt
+java -cp "build/util" util.GeneratePhoneNumbers 200000 "true" > phones_200_000_with_empty.txt
 
 CHECK_FILE="proc_out.txt"
 DEFAULT_INPUT="input.txt"
