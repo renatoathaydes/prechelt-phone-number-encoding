@@ -8,14 +8,15 @@ import java.util.stream.IntStream;
  * <p>
  * By default, 1000 numbers are generated. To modify that, pass the desired count as an argument.
  * <p>
- * The second argument can be "true" to allow phone numbers consisting of only non-digits (empty after clean).
+ * The second argument can be used to set a limit on the length of
+ * each number (it's 50 by default).
  *
  * @author Renato Athaydes
  */
 public class GeneratePhoneNumbers {
     public static void main( String[] args ) {
         var count = args.length == 0 ? 1000 : Integer.parseInt( args[ 0 ] );
-        var allowEmpty = args.length > 1 ? Boolean.parseBoolean( args[ 1 ] ) : false;
+        var maxPhoneLength = args.length > 1 ? Integer.parseInt( args[ 1 ] ) : 50;
 
         /*
         Example phone numbers used in study:
@@ -34,12 +35,12 @@ public class GeneratePhoneNumbers {
 
         // generate 1000 numbers
         IntStream.range( 0, count ).mapToObj( ignore ->
-                nextPhoneNumber( random, inputChars, allowEmpty )
+                nextPhoneNumber( random, inputChars, maxPhoneLength )
         ).forEach( System.out::println );
     }
 
-    private static String nextPhoneNumber( Random random, char[] inputChars, boolean allowEmpty ) {
-        var phoneLength = random.nextInt( 50 ) + 1;
+    private static String nextPhoneNumber( Random random, char[] inputChars, int maxPhoneLength ) {
+        var phoneLength = random.nextInt( maxPhoneLength ) + 1;
         var builder = new StringBuilder( phoneLength );
         while ( true ) {
             for ( var i = 0; i < phoneLength; i++ ) {
@@ -47,7 +48,7 @@ public class GeneratePhoneNumbers {
             }
             var phone = builder.toString();
 
-            if ( allowEmpty || !phone.replaceAll( "[-/]", "" ).isEmpty() ) {
+            if ( !phone.replaceAll( "[-/]", "" ).isEmpty() ) {
                 return phone;
             }
         }

@@ -9,10 +9,9 @@ set -e
 #
 
 COMMANDS=(
-  "java -cp build/java Main"          # Java 1
-  "java -cp build/java Main2"         # Java 2
-  "sbcl --script src/lisp/main.lisp"  # Common Lisp
-  "./phone_encoder"                   # Rust
+  "java -Xms30m -Xmx60m -cp build/java Main2" # Java
+  "sbcl --script src/lisp/main.fasl"  # Common Lisp
+  "./rust"                            # Rust
 )
 
 echo "Compiling Java sources"
@@ -21,39 +20,88 @@ javac src/java/*.java -d build/java
 javac src/java/util/*.java -d build/util
 
 echo "Compiling Rust sources"
-cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_encoder ../../../
+cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_encoder ../../../rust
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
+cd ../plotter && cargo build --release && cp target/release/plotter ../../../
 cd ../../..
 
+echo "Compiling Lisp sources"
+cd src/lisp/
+sbcl --noinform --eval "(compile-file \"main.lisp\")" --eval "(quit)"
+cd ../..
+
 echo "Generating inputs"
-INPUTS=(phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
-rm "${INPUTS[@]}" > /dev/null 2>&1 || true
-java -cp "build/util" util.GeneratePhoneNumbers 1000 > phones_1000.txt
-java -cp "build/util" util.GeneratePhoneNumbers 10000 > phones_10_000.txt
-java -cp "build/util" util.GeneratePhoneNumbers 50000 > phones_50_000.txt
-java -cp "build/util" util.GeneratePhoneNumbers 100000 "true" > phones_100_000_with_empty.txt
+
+INPUTS=(phones_1_000.txt
+        phones_200_000.txt
+        phones_400_000.txt
+        phones_600_000.txt)
+
+# INPUTS to run with larger dictionary (must use 'count' arg due to too many solutions)
+# phone length limited to 16 instead of 25
+BIG_INPUTS=(phones_1000_16.txt
+            phones_2000_16.txt)
+
+# Using Standard dictionary
+java -cp "build/util" util.GeneratePhoneNumbers 1000   25 > "${INPUTS[0]}"
+java -cp "build/util" util.GeneratePhoneNumbers 200000 25 > "${INPUTS[1]}"
+java -cp "build/util" util.GeneratePhoneNumbers 400000 25 > "${INPUTS[2]}"
+java -cp "build/util" util.GeneratePhoneNumbers 600000 25 > "${INPUTS[3]}"
+
+# Using larger dictionary, takes much longer to run so use smaller input sizes
+java -cp "build/util" util.GeneratePhoneNumbers 1000 16 > "${BIG_INPUTS[0]}"
+java -cp "build/util" util.GeneratePhoneNumbers 2000 16 > "${BIG_INPUTS[1]}"
 
 CHECK_FILE="proc_out.txt"
 DEFAULT_INPUT="input.txt"
 DEFAULT_OUTPUT="output.txt"
+COUNT_OUTPUT="count_output.txt"
 DICTIONARY="dictionary.txt"
+BIG_DICTIONARY="words.txt"
 
 echo "Checking all programs for correctness"
 for CMD in "${COMMANDS[@]}"
 do
-  echo "Checking: $CMD"
-  $CMD $DICTIONARY $DEFAULT_INPUT > $CHECK_FILE
-  diff -q <(sort $CHECK_FILE) <(sort $DEFAULT_OUTPUT)
-  echo "OK"
+    echo "Checking: $CMD"
+    # test print
+    $CMD print $DICTIONARY $DEFAULT_INPUT > $CHECK_FILE
+    diff -q <(sort $CHECK_FILE) <(sort $DEFAULT_OUTPUT)
+    # test count
+    $CMD count $DICTIONARY $DEFAULT_INPUT $DEFAULT_INPUT > $CHECK_FILE
+    diff <(sort $CHECK_FILE) <(sort $COUNT_OUTPUT)
+    echo "OK"
 done
 
+CSV_OUT="data.csv"
+
+run_bench() {
+    DATA=$(./benchmark_runner $*)
+    echo "$DATA"
+    echo "$DATA" >> "$CSV_OUT"
+}
+
 echo "Benchmarking..."
+echo "Proc,Run,Memory(bytes),Time(ms)"
+echo "Proc,Run,Memory(bytes),Time(ms)" > "$CSV_OUT"
 for CMD in "${COMMANDS[@]}"
 do
   echo "===> $CMD"
   # shellcheck disable=SC2086
-  for file in "${INPUTS[@]}"; do ./benchmark_runner $CMD $DICTIONARY "$file"; done;
+  for (( i = 0; i < ${#INPUTS[*]}; ++i )); do
+      run_bench "$i $CMD print $DICTIONARY ${INPUTS[$i]}"
+  done
+  ## run with all input files
+  run_bench "${#INPUTS[@]} $CMD count $DICTIONARY ${INPUTS[@]}"
+  ## run with larger dictionary
+  for (( i = 0; i < ${#BIG_INPUTS[*]}; ++i )); do
+      run_bench "$((1 + i + ${#INPUTS[*]})) $CMD count $BIG_DICTIONARY ${BIG_INPUTS[$i]}"
+  done
+  ## run with all input files
+  run_bench "$((1 + ${#INPUTS[@]} + ${#BIG_INPUTS[@]})) $CMD count $BIG_DICTIONARY ${BIG_INPUTS[@]}"
 done
 
+echo "Generating plot"
+./plotter "$CSV_OUT"
+
 echo "Cleaning up"
-rm "${INPUTS[@]}" "$CHECK_FILE" phone_encoder benchmark_runner
+rm "${INPUTS[@]}" "${BIG_INPUTS[@]}" "$CHECK_FILE" ./rust ./benchmark_runner ./plotter

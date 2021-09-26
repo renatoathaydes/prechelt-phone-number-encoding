@@ -13,12 +13,6 @@ enum WordOrDigit<'a> {
     Digit(u8),
 }
 
-impl<'a> WordOrDigit<'a> {
-    fn len(&self) -> usize {
-        if let WordOrDigit::Word(w) = self { w.len() } else { 1 }
-    }
-}
-
 impl Display for WordOrDigit<'_> {
     fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
         match self {
@@ -28,6 +22,11 @@ impl Display for WordOrDigit<'_> {
     }
 }
 
+#[derive(PartialEq, Eq)]
+enum ResultsOption {
+    Print,
+    Count,
+}
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
@@ -35,32 +34,51 @@ impl Display for WordOrDigit<'_> {
 /// due to the very different natures of Lisp and Rust.
 fn main() -> io::Result<()> {
     // drop itself from args
-    let mut args: Vec<_> = args().skip(1).collect();
-    let words_file: String = if !args.is_empty() { args.remove(0) } else { "tests/words.txt".into() };
-    let input_file: String = if !args.is_empty() { args.remove(0) } else { "tests/numbers.txt".into() };
+    let mut args = args().skip(1);
+    let res_opt = args.next().unwrap_or_else(|| "".to_string());
+    let results_opt = match res_opt.as_ref() {
+        "print" => ResultsOption::Print,
+        "count" => ResultsOption::Count,
+        _ => panic!("Bad first argument (expected 'print' or 'count')"),
+    };
+    let words_file = args.next().expect("Missing words file");
+    let input_files: Vec<_> = args.collect();
 
     let mut solution_count = 0;
-    let mut rejected_solution_count: u64 = 0;
     let dict = load_dict(words_file)?;
 
     let stdout = io::stdout();
     let mut writer = BufWriter::new(stdout.lock());
 
-    for line in read_lines(input_file)? {
-        let num = line?;
-        let digits: Vec<u8> = num.chars()
-            .filter(char::is_ascii_digit)
-            .map(|ch| ch as u8)
-            .collect();
-        print_translations(&mut solution_count, &mut rejected_solution_count, &num, &digits, &mut Vec::new(), &dict, &mut writer);
+    for input_file in input_files {
+        for line in read_lines(input_file)? {
+            let num = line?;
+            let digits: Vec<u8> = num
+                .chars()
+                .filter(char::is_ascii_digit)
+                .map(|ch| ch as u8)
+                .collect();
+            find_translations(
+                &mut solution_count,
+                results_opt == ResultsOption::Print,
+                &num,
+                &digits,
+                &mut Vec::new(),
+                &dict,
+                &mut writer,
+            );
+        }
+        if results_opt == ResultsOption::Count {
+            println!("{}", solution_count);
+            solution_count = 0;
+        }
     }
-    eprintln!("Found solutions: {}, rejected: {}", solution_count, rejected_solution_count);
     Ok(())
 }
 
-fn print_translations<'a>(
+fn find_translations<'a>(
     solution_count: &mut usize,
-    rejected_solution_count: &mut u64,
+    do_print: bool,
     num: &str,
     digits: &[u8],
     words: &mut Vec<WordOrDigit<'a>>,
@@ -68,10 +86,10 @@ fn print_translations<'a>(
     writer: &mut BufWriter<StdoutLock>,
 ) {
     if digits.is_empty() {
-        if print_solution(num, &words, writer) {
-            *solution_count += 1;
+        if do_print {
+            print_solution(num, words, writer);
         } else {
-            *rejected_solution_count += 1;
+            *solution_count += 1;
         }
         return;
     }
@@ -82,7 +100,15 @@ fn print_translations<'a>(
             for word in found_words {
                 found_word = true;
                 words.push(WordOrDigit::Word(word));
-                print_translations(solution_count, rejected_solution_count, num, rest_of_digits, words, dict, writer);
+                find_translations(
+                    solution_count,
+                    do_print,
+                    num,
+                    rest_of_digits,
+                    words,
+                    dict,
+                    writer,
+                );
                 words.pop();
             }
         }
@@ -90,68 +116,33 @@ fn print_translations<'a>(
     if found_word {
         return;
     }
-    let last_is_digit = match words.last() {
-        Some(WordOrDigit::Digit(..)) => true,
-        _ => false,
-    };
-    if !last_is_digit {
+    if !matches!(words.last(), Some(WordOrDigit::Digit(..))) {
         let digit = digits[0] - b'0';
         words.push(WordOrDigit::Digit(digit));
-        print_translations(solution_count, rejected_solution_count, num, &digits[1..], words, dict, writer);
+        find_translations(
+            solution_count,
+            do_print,
+            num,
+            &digits[1..],
+            words,
+            dict,
+            writer,
+        );
         words.pop();
     }
 }
 
-fn print_solution(
-    num: &str,
-    words: &[WordOrDigit<'_>],
-    writer: &mut BufWriter<StdoutLock>,
-) -> bool {
-    if !should_print(words) { return false; }
-    // do a little gymnastics here to avoid allocating a big string just for printing it
-    write!(writer, "{}", num).unwrap();
-    if words.is_empty() {
-        write!(writer, ":").unwrap();
-        return true;
+fn print_solution(num: &str, words: &[WordOrDigit<'_>], writer: &mut BufWriter<StdoutLock>) {
+    write!(writer, "{}:", num).unwrap();
+    for word in words {
+        write!(writer, " {}", word).unwrap();
     }
-    write!(writer, ": ").unwrap();
-    let (head, tail) = words.split_at(words.len() - 1);
-    for word in head {
-        write!(writer, "{} ", word).unwrap();
-    }
-    for word in tail { // only last word in tail
-        write!(writer, "{}", word).unwrap();
-    }
-    write!(writer, "\n").unwrap();
-    true
-}
-
-fn should_print(words: &[WordOrDigit]) -> bool {
-    if words.is_empty() { return false; }
-    if words.len() == 1 { return true; }
-    let word = words[0];
-    let (mut was_digit, mut acceptable_len) = match word {
-        WordOrDigit::Word(w) => (false, w.len()),
-        WordOrDigit::Digit(_) => (true, 0)
-    };
-    for word in words[1..].iter() {
-        if acceptable_len == 0 {
-            acceptable_len = word.len();
-        }
-        let is_digit = matches!(word, WordOrDigit::Digit(..));
-        if was_digit == is_digit ||
-            (!is_digit && word.len() != acceptable_len) {
-            return false;
-        }
-        was_digit = is_digit;
-    }
-    true
+    writeln!(writer).unwrap();
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
-    let mut dict: Dictionary = HashMap::with_capacity_and_hasher(
-        100,
-        ahash::RandomState::default());
+    let mut dict: Dictionary =
+        HashMap::with_capacity_and_hasher(100, ahash::RandomState::default());
 
     for line in read_lines(words_file)? {
         let word = line?;
@@ -165,7 +156,9 @@ fn load_dict(words_file: String) -> io::Result<Dictionary> {
 // The output is wrapped in a Result to allow matching on errors
 // Returns an Iterator to the Reader of the lines of the file.
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-    where P: AsRef<Path>, {
+where
+    P: AsRef<Path>,
+{
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
 }
@@ -190,6 +183,6 @@ fn char_to_digit(ch: char) -> u8 {
         'b' | 'k' | 'u' => 7,
         'l' | 'o' | 'p' => 8,
         'g' | 'h' | 'z' => 9,
-        _ => panic!("invalid input: not a digit: {}", ch)
+        _ => panic!("invalid input: not a digit: {}", ch),
     }
 }
