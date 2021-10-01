@@ -8,3 +8,4 @@ target/
 Cargo.lock
 phone_encoder
 benchmark_runner
+nim_phone_encoder
