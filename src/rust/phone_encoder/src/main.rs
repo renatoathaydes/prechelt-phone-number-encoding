@@ -1,102 +1,116 @@
 use std::collections::HashMap;
 use std::env::args;
+use std::fmt::{self, Display, Formatter};
 use std::fs::File;
-use std::io::{self, BufRead};
+use std::io::{self, BufRead, BufWriter, StdoutLock, Write};
 use std::path::Path;
 
-use lazy_static::lazy_static;
-use num_bigint::{BigUint, ToBigUint};
+type Dictionary = HashMap<Vec<u8>, Vec<String>, ahash::RandomState>;
 
-type Dictionary = HashMap<BigUint, Vec<String>>;
-
-lazy_static! {
-    static ref ONE: BigUint = 1.to_biguint().unwrap();
-    static ref TEN: BigUint =10.to_biguint().unwrap();
+#[derive(Debug, Copy, Clone)]
+enum WordOrDigit<'a> {
+    Word(&'a str),
+    Digit(u8),
 }
+
+impl Display for WordOrDigit<'_> {
+    fn fmt(&self, formatter: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            WordOrDigit::Word(s) => s.fmt(formatter),
+            WordOrDigit::Digit(d) => d.fmt(formatter),
+        }
+    }
+}
+
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
 /// Even though this is intended as a port, it deviates quite a bit from it
 /// due to the very different natures of Lisp and Rust.
 fn main() -> io::Result<()> {
-    // drop itself from args
-    let mut args: Vec<_> = args().skip(1).collect();
-    let words_file: String = if !args.is_empty() { args.remove(0) } else { "tests/words.txt".into() };
-    let input_file: String = if !args.is_empty() { args.remove(0) } else { "tests/numbers.txt".into() };
-
+// drop itself from args
+    let mut args = args().skip(1);
+    let words_file = args.next().unwrap_or_else(|| "tests/words.txt".into());
+    let input_file = args.next().unwrap_or_else(|| "tests/numbers.txt".into());
+    
     let dict = load_dict(words_file)?;
 
+    let stdout = io::stdout();
+    let mut writer = BufWriter::new(stdout.lock());
+
     for line in read_lines(input_file)? {
-        if let Ok(num) = line {
-            let digits: Vec<_> = num.chars()
-                .filter(|ch| ch.is_alphanumeric())
-                .collect();
-            print_translations(&num, &digits, 0, Vec::new(), &dict)?;
-        }
+        let num = line?;
+        let digits: Vec<u8> = num.chars()
+            .filter(char::is_ascii_digit)
+            .map(|ch| ch as u8)
+            .collect();
+        print_translations(&num, &digits, &mut Vec::new(), &dict, &mut writer)?;
     }
     Ok(())
 }
 
-fn print_translations(
+fn print_translations<'a>(
     num: &str,
-    digits: &Vec<char>,
-    start: usize,
-    words: Vec<&String>,
-    dict: &Dictionary,
+    digits: &[u8],
+    words: &mut Vec<WordOrDigit<'a>>,
+    dict: &'a Dictionary,
+    writer: &mut BufWriter<StdoutLock>,
 ) -> io::Result<()> {
-    if start >= digits.len() {
-        print_solution(num, &words);
-        return Ok(());
+    if digits.is_empty() {
+        return print_solution(num, words, writer);
     }
-    let mut n = ONE.clone();
     let mut found_word = false;
-    for i in start..digits.len() {
-        n = &n * (&*TEN) + &nth_digit(digits, i);
-        if let Some(found_words) = dict.get(&n) {
+    for i in 0..digits.len() {
+        let (key, rest_of_digits) = digits.split_at(i + 1);
+        if let Some(found_words) = dict.get(key) {
             for word in found_words {
                 found_word = true;
-                let mut partial_solution = words.clone();
-                partial_solution.push(word);
-                print_translations(num, digits, i + 1, partial_solution, dict)?;
+                words.push(WordOrDigit::Word(word));
+                print_translations(num, rest_of_digits, words, dict, writer)?;
+                words.pop();
             }
         }
     }
-    if !found_word && !words.last().map(|w| is_digit(w)).unwrap_or(false) {
-        let mut partial_solution = words.clone();
-        let digit = nth_digit(digits, start).to_string();
-        partial_solution.push(&digit);
-        print_translations(num, digits, start + 1, partial_solution, dict)
-    } else {
-        Ok(())
+    if found_word {
+        return Ok(());
     }
+    let last_is_digit = matches!(words.last(), Some(WordOrDigit::Digit(..)));
+    if !last_is_digit {
+        let digit = digits[0] - b'0';
+        words.push(WordOrDigit::Digit(digit));
+        print_translations(num, &digits[1..], words, dict, writer)?;
+        words.pop();
+    }
+    Ok(())
 }
 
-fn print_solution(num: &str, words: &Vec<&String>) {
-    // do a little gymnastics here to avoid allocating a big string just for printing it
-    print!("{}", num);
+fn print_solution(
+    num: &str,
+    words: &[WordOrDigit<'_>],
+    writer: &mut BufWriter<StdoutLock>,
+) -> io::Result<()> {
+    write!(writer, "{}:", num)?;
     if words.is_empty() {
-        println!(":");
-        return;
+        writeln!(writer)?;
+        return Ok(());
     }
-    print!(": ");
-    let (head, tail) = words.split_at(words.len() - 1);
-    for word in head {
-        print!("{} ", word);
+    for word in words {
+        write!(writer, " {}", word)?;
     }
-    for word in tail { // only last word in tail
-        println!("{}", word);
-    }
+    writeln!(writer)?;
+    Ok(())
 }
 
 fn load_dict(words_file: String) -> io::Result<Dictionary> {
-    let mut dict = HashMap::with_capacity(100);
-    let words = read_lines(words_file)?;
-    for line in words {
-        if let Ok(word) = line {
-            let key = word_to_number(&word);
-            let words = dict.entry(key).or_insert_with(|| Vec::new());
-            words.push(word);
-        }
+    let mut dict: Dictionary = HashMap::with_capacity_and_hasher(
+        100,
+        ahash::RandomState::default());
+
+    for line in read_lines(words_file)? {
+        let word = line?;
+        let key = word_to_number(&word);
+        let words = dict.entry(key).or_default();
+        words.push(word);
     }
     Ok(dict)
 }
@@ -109,26 +123,15 @@ fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
     Ok(io::BufReader::new(file).lines())
 }
 
-fn word_to_number(word: &str) -> BigUint {
-    let mut n = ONE.clone();
-    for ch in word.chars() {
-        if ch.is_alphabetic() {
-            n = &n * (&*TEN) + &char_to_digit(ch);
-        }
-    }
-    n
+fn word_to_number(word: &str) -> Vec<u8> {
+    word.chars()
+        .filter(char::is_ascii_alphabetic)
+        .map(char_to_digit)
+        .map(|d| d + b'0')
+        .collect()
 }
 
-fn nth_digit(digits: &Vec<char>, i: usize) -> BigUint {
-    let ch = digits.get(i).expect("index out of bounds");
-    ((*ch as usize) - ('0' as usize)).to_biguint().unwrap()
-}
-
-fn is_digit(string: &str) -> bool {
-    string.len() == 1 && string.chars().next().unwrap().is_digit(10)
-}
-
-fn char_to_digit(ch: char) -> u32 {
+fn char_to_digit(ch: char) -> u8 {
     match ch.to_ascii_lowercase() {
         'e' => 0,
         'j' | 'n' | 'q' => 1,
