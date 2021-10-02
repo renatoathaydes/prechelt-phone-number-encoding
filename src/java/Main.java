@@ -1,7 +1,9 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -26,11 +28,21 @@ final class Main {
 
         var encoder = new PhoneNumberEncoder( words );
 
-        new InputParser( PhoneNumberCleaner::clean )
-                .parse( new File( args.length > 1 ? args[ 1 ] : "tests/numbers.txt" ) )
-                .forEach( phone -> encoder.encode( phone, System.out::println ) );
-    }
+        var printer = new BufferedWriter(new OutputStreamWriter(System.out, US_ASCII));
 
+        try (printer) {
+            new InputParser(PhoneNumberCleaner::clean)
+                    .parse(new File( args.length > 1 ? args[ 1 ] : "tests/numbers.txt" ) )
+                    .forEach( phone -> encoder.encode(phone, ( item ) -> {
+                        try {
+                            printer.write( item.toString() );
+                            printer.write( '\n' );
+                        } catch (IOException e) {
+                            throw new RuntimeException( e );
+                        }
+                    }));
+        }
+    }
 }
 
 /**
