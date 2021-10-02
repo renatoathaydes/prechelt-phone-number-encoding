@@ -109,7 +109,7 @@ void print_solutions_rec(unsigned int i, vector_t * part_solution, vector_t * so
 }
 
 void print_solutions(vector_t * solution_matrix) {
-	vector_t * part_solution = malloc(sizeof(vector_t *));
+	vector_t * part_solution = malloc(sizeof(vector_t));
 	vector_init(part_solution, sizeof(char *), 10);
 	print_solutions_rec(0, part_solution, solution_matrix);
 	vector_free(part_solution);
