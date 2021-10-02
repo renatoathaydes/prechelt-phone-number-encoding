@@ -1,4 +1,6 @@
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.OutputStreamWriter;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
@@ -8,24 +10,27 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static java.nio.charset.StandardCharsets.US_ASCII;
+
 /**
- * My second solution to the problem. The outputs are right this time and it
- * performs better than any other Java solution. It also performs better than
- * the Rust and Lisp solutions with long lists of phone numbers (> 50,000 phone
- * numbers)
+ * My second solution to the problem.
  * 
  * @author David Alvarez Fidalgo
  */
-public class MyMain2 {
+public class Faster {
 
 	public static void main(String[] args) {
 		// long t1 = System.currentTimeMillis();
 
-		PhoneProblemSolver pps = new PhoneProblemSolver(args.length > 0 ? args[0] : "tests/words.txt");
+		BufferedWriter printer = new BufferedWriter(new OutputStreamWriter(System.out, US_ASCII));
+		PhoneEncoder pps = new PhoneEncoder(args.length > 0 ? args[0] : "tests/words.txt", printer);
 		List<String> phoneNumbers = loadPhoneNumbers(args.length > 1 ? args[1] : "tests/numbers.txt");
 
-		for (String number : phoneNumbers) {
-			pps.solve(number);
+		try (printer) {
+			for (String number : phoneNumbers)
+				pps.encode(number);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
 		}
 
 		// System.out.printf("Time: %d ms\n", System.currentTimeMillis() - t1);
@@ -60,29 +65,31 @@ public class MyMain2 {
 	 * 
 	 * @author David Alvarez Fidalgo
 	 */
-	private static class PhoneProblemSolver {
+	private static class PhoneEncoder {
 
 		private WordTree dict;
 		private String phoneNumberStr;
 		private List<Integer> phoneNumber;
 		private int maxWordLength;
 		private int minWordLength;
+		private BufferedWriter printer;
 
 		/**
-		 * Creates an instance of the solver and loads the words from a dictionary file
+		 * Creates an instance of the encoder and loads the words from a dictionary file
 		 * 
 		 * @param dictionaryFileName name of the file containing the words
 		 */
-		public PhoneProblemSolver(String dictionaryFileName) {
+		public PhoneEncoder(String dictionaryFileName, BufferedWriter printer) {
+			this.printer = printer;
 			loadDict(dictionaryFileName);
 		}
 
 		/**
-		 * Solves the phone encoding problem
+		 * Encodes the phone number
 		 * 
 		 * @param phoneNumberStr string containing the phone number
 		 */
-		public void solve(String phoneNumberStr) {
+		public void encode(String phoneNumberStr) {
 			this.phoneNumberStr = phoneNumberStr;
 			loadPhoneNumber(phoneNumberStr);
 
@@ -90,7 +97,12 @@ public class MyMain2 {
 			// one letter,
 			// the only solution is the digit itself
 			if (phoneNumber.size() == 1 && minWordLength > 1) {
-				System.out.println(phoneNumberStr + ": " + phoneNumber.get(0).toString());
+				try {
+					printer.write(phoneNumberStr + ": " + phoneNumber.get(0).toString());
+					printer.write('\n');
+				} catch (IOException e) {
+                    throw new RuntimeException( e );
+                }
 				return;
 			}
 
@@ -101,7 +113,7 @@ public class MyMain2 {
 				return;
 			}
 
-			solveRec(0, new ArrayList<>(), false);
+			encodeRec(0, new ArrayList<>(), false);
 		}
 
 		/**
@@ -161,7 +173,7 @@ public class MyMain2 {
 		 * @param lastWasDigit whether the last string added to the partial solution was
 		 *                     a digit or not
 		 */
-		private void solveRec(int digitPos, List<List<String>> partSolution, boolean lastWasDigit) {
+		private void encodeRec(int digitPos, List<List<String>> partSolution, boolean lastWasDigit) {
 			Map<Integer, List<String>> words = dict.findWords(phoneNumber, digitPos);
 			boolean wordsFound = !words.isEmpty();
 
@@ -180,7 +192,7 @@ public class MyMain2 {
 				if (digitPos + entry.getKey() == phoneNumber.size()) {
 					printSolution(partSolution);
 				} else {
-					solveRec(digitPos + entry.getKey(), partSolution, !wordsFound);
+					encodeRec(digitPos + entry.getKey(), partSolution, !wordsFound);
 				}
 				partSolution.remove(partSolution.size() - 1);
 			}
@@ -209,7 +221,12 @@ public class MyMain2 {
 		 */
 		private void printSolutionRec(int i, List<String> partSolution, List<List<String>> solutionMatrix) {
 			if (i == solutionMatrix.size()) {
-				System.out.println(phoneNumberStr + ": " + joinWordList(partSolution));
+				try {
+					printer.write(phoneNumberStr + ": " + joinWordList(partSolution));
+					printer.write('\n');
+				} catch (IOException e) {
+                    throw new RuntimeException( e );
+                }
 				return;
 			}
 
