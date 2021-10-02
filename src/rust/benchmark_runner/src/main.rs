@@ -4,7 +4,7 @@ use std::process::*;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-// use libproc::libproc::pid_rusage::{pidrusage, RUsageInfoV4};
+use libproc::libproc::pid_rusage::{pidrusage, RUsageInfoV4};
 
 fn main() {
     let mut args = args().skip(1);
@@ -18,7 +18,7 @@ fn main() {
         .stdout(Stdio::null())
         .spawn()
         .expect("process could not be created");
-    // let pid = out.id() as i32;
+    let pid = out.id() as i32;
 
     let mut mem: u64 = 0;
 
@@ -32,12 +32,12 @@ fn main() {
             break;
         } else {
             // the program seems to be still running, but we can still fail below
-            // match pidrusage::<RUsageInfoV4>(pid) {
-            //    Ok(info) => {
-            //        mem = max(mem, info.ri_resident_size);
-            //    }
-            //    Err(_) => break // ignore error because the process must have ended already
-            // }
+            match pidrusage::<RUsageInfoV4>(pid) {
+                Ok(info) => {
+                    mem = max(mem, info.ri_resident_size);
+                }
+                Err(_) => break // ignore error because the process must have ended already
+            }
             sleep(Duration::from_millis(5));
         }
     }
