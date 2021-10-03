@@ -1,11 +1,11 @@
 [package]
-name = "phone_encoder"
+name = "plotter"
 version = "0.1.0"
 edition = "2018"
-authors = ["Renato Athaydes <renato@athaydes.com>"]
-license = ""
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-ahash = "0.7.4"
+linked-hash-map = "0.5.4"
+plotters = { version = "^0.3.1", default_features = false, features = ["line_series"] }
+plotters-svg = "^0.3.1"
