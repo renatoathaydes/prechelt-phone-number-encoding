@@ -10,14 +10,9 @@ set -e
 
 JVM_OPTIONS="-Xms20M -Xmx100M"
 
-# Hack to rename the Java process to Main1 and Main2 so the printed cmd name makes more sense
-echo "java \"\$@\"" > Main1
-echo "java \"\$@\"" > Main2
-chmod +x Main1 Main2
-
 COMMANDS=(
-  "./Main1 $JVM_OPTIONS -cp build/java Main"  # Java 1
-  "./Main2 $JVM_OPTIONS -cp build/java Main2" # Java 2
+  "java $JVM_OPTIONS -cp build/java Main"  # Java 1
+  "java $JVM_OPTIONS -cp build/java Main2" # Java 2
   "sbcl --script src/lisp/main.fasl"          # Common Lisp
   "./rust"                                    # Rust
 )
@@ -34,6 +29,7 @@ cd ../..
 
 echo "Compiling Rust sources"
 cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_encoder ../../../rust
+cd ../plotter && cargo build --release && cp target/release/plotter ../../../
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
 cd ../../..
 
@@ -91,4 +87,4 @@ echo "Generating plot"
 ./plotter "$CSV_OUT"
 
 echo "Cleaning up"
-rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./Main1 ./Main2 ./rust ./benchmark_runner" > /dev/null 2>&1 || true
+rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner" > /dev/null 2>&1 || true

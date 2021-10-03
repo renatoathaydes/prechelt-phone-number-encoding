@@ -10,6 +10,7 @@ fn main() {
     let mut args = args().skip(1);
     let proc_name = args.next().expect("Name of process to start was not provided");
     let proc_args: Vec<_> = args.collect();
+    let display_name = display_name(&proc_name, &proc_args);
 
     let start_time = Instant::now();
 
@@ -43,5 +44,19 @@ fn main() {
     }
 
     let total_time = Instant::now().duration_since(start_time);
-    println!("{},{},{}", proc_name, mem, total_time.as_millis());
+    println!("{},{},{}", display_name, mem, total_time.as_millis());
+}
+
+fn display_name(name: &str, args: &Vec<String>) -> String {
+    if name == "java" {
+        // to differentiate which java program we're running, include the class name
+        let mut proc_name = name.to_string();
+        let class_name = args.iter()
+            .find(|a| a.starts_with("Main"))
+            .expect("java class cannot be found");
+        proc_name.push('-');
+        proc_name.push_str(class_name);
+        return proc_name;
+    }
+    name.to_string()
 }
