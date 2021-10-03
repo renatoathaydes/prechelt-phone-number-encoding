@@ -15,9 +15,10 @@ struct DataPoint {
 
 const OUT_FILE_NAME: &str = "benchmark-result.svg";
 const COLORS: [&RGBColor; 5] = [
-    &BLUE,
+    &YELLOW,
     &RGBColor(255, 165, 0),
-    &RGBColor(0, 100, 0),
+    //    &RGBColor(0, 100, 0),
+    &BLUE,
     &RED,
     &MAGENTA,
 ];

@@ -10,10 +10,13 @@ set -e
 
 JVM_OPTIONS="-Xms20M -Xmx100M"
 
+# Ignore non-CL while we optimise it
 COMMANDS=(
-  "java $JVM_OPTIONS -cp build/java Main"  # Java
-  "sbcl --script src/lisp/main.fasl"       # Common Lisp
-  "./rust"                                 # Rust
+#  "java $JVM_OPTIONS -cp build/java Main"  # Java 1
+    #  "java $JVM_OPTIONS -cp build/java Main2" # Java 2
+  "./lisp-phone-encoder"                      # Common Lisp (binary, original impl.)
+  "sbcl --script src/lisp/main.fasl"          # Common Lisp
+#  "./rust"                                    # Rust
 )
 
 echo "Compiling Java sources"
@@ -71,8 +74,8 @@ run_bench() {
 }
 
 echo "Benchmarking..."
-echo "Proc,Run,Memory(bytes),Time(ms)"
-echo "Proc,Run,Memory(bytes),Time(ms)" > "$CSV_OUT"
+echo "Proc,Memory(bytes),Time(ms)"
+echo "Proc,Memory(bytes),Time(ms)" > "$CSV_OUT"
 
 for CMD in "${COMMANDS[@]}"
 do
