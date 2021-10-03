@@ -11,10 +11,9 @@ set -e
 JVM_OPTIONS="-Xms20M -Xmx100M"
 
 COMMANDS=(
-  "java $JVM_OPTIONS -cp build/java Main"  # Java 1
-  "java $JVM_OPTIONS -cp build/java Main2" # Java 2
-  "sbcl --script src/lisp/main.fasl"          # Common Lisp
-  "./rust"                                    # Rust
+  "java $JVM_OPTIONS -cp build/java Main"  # Java
+  "sbcl --script src/lisp/main.fasl"       # Common Lisp
+  "./rust"                                 # Rust
 )
 
 echo "Compiling Java sources"
