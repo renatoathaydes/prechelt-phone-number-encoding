@@ -10,4 +10,4 @@ target/
 Cargo.lock
 phone_encoder
 benchmark_runner
-benchmark-result.csv
+benchmark-result.*

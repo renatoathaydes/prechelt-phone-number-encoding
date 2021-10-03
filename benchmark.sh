@@ -84,8 +84,11 @@ do
   echo "===> $CMD"
   # shellcheck disable=SC2086
   for file in "${PRINT_INPUTS[@]}"; do run_bench "$CMD print $DE_DICTIONARY $file"; done;
-  for file in "${COUNT_INPUTS[@]}"; do run_bench "$CMD count $DE_DICTIONARY $file"; done;
+  for file in "${COUNT_INPUTS[@]}"; do run_bench "$CMD count $EN_DICTIONARY $file"; done;
 done
+
+echo "Generating plot"
+./plotter "$CSV_OUT"
 
 echo "Cleaning up"
 rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./Main1 ./Main2 ./rust ./benchmark_runner" > /dev/null 2>&1 || true

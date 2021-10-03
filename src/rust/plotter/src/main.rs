@@ -12,7 +12,7 @@ struct DataPoint {
     time: u32,
 }
 
-const OUT_FILE_NAME: &str = "chart.svg";
+const OUT_FILE_NAME: &str = "benchmark-result.svg";
 const COLORS: [&RGBColor; 5] = [
     &RED,
     &RGBColor(255, 165, 0),
