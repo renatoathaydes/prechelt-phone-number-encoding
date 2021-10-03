@@ -23,17 +23,21 @@ public class Faster {
 		// long t1 = System.currentTimeMillis();
 
 		BufferedWriter printer = new BufferedWriter(new OutputStreamWriter(System.out, US_ASCII));
-		PhoneEncoder pps = new PhoneEncoder(args.length > 0 ? args[0] : "tests/words.txt", printer);
-		List<String> phoneNumbers = loadPhoneNumbers(args.length > 1 ? args[1] : "tests/numbers.txt");
+		SolutionConsumer consumer;
+
+		if (args.length > 0 && args[0].equals("count")) consumer = new SolutionCounter(printer);
+		else consumer = new SolutionPrinter(printer);
+
+		PhoneEncoder pe = new PhoneEncoder(args.length > 1 ? args[1] : "tests/words.txt", consumer);
+		List<String> phoneNumbers = loadPhoneNumbers(args.length > 2 ? args[2] : "tests/numbers.txt");
 
 		try (printer) {
-			for (String number : phoneNumbers)
-				pps.encode(number);
+			for (String number : phoneNumbers) pe.encode(number);
+			consumer.onEnd();
+			// printer.write(String.format("Time: %d ms\n", System.currentTimeMillis() - t1));
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
-
-		// System.out.printf("Time: %d ms\n", System.currentTimeMillis() - t1);
 	}
 
 	/**
@@ -61,6 +65,120 @@ public class Faster {
 	}
 
 	/**
+	 * Consumes each solution produced by the phone encoder
+	 */
+	private static interface SolutionConsumer {
+		/**
+		 * Consumes an irregular matrix containing the encodings of a phone
+		 * number
+		 * 
+		 * @param phoneNumber the phone number to be encoded
+		 * @param solutionMatrix irregular matrix containing the encodings
+		 */
+		void onSolution(String phoneNumber, List<List<String>> solutionMatrix);
+
+		/**
+		 * Method to be called when all the solutions have been consumed
+		 */
+		void onEnd();
+	}
+
+	/**
+	 * Prints each solution preceded by the phone number that encodes
+	 */
+	private static class SolutionPrinter implements SolutionConsumer {
+		private BufferedWriter printer;
+
+		public SolutionPrinter(BufferedWriter printer) {
+			this.printer = printer;
+		}
+
+		/**
+		 * Prints the solutions from an irregular matrix containing the encodings
+		 * of a phone number
+		 * 
+		 * @param phoneNumber the phone number to be encoded
+		 * @param solutionMatrix irregular matrix containing the encodings
+		 */
+		public void onSolution(String phoneNumber, List<List<String>> solutionMatrix) {
+			printSolutionRec(0, new ArrayList<>(), solutionMatrix, phoneNumber);
+		}
+
+		/**
+		 * Recursively prints the solutions from an irregular matrix containing 
+		 * the encodings of a phone number
+		 * 
+		 * @param i              next index in the matrix
+		 * @param partSolution   current partial solution
+		 * @param solutionMatrix irregular matrix containing the encodings of a phone
+		 *                       number
+		 * @param solutionsList  list of solutions
+		 */
+		private void printSolutionRec(int i, List<String> partSolution, 
+			List<List<String>> solutionMatrix, String phoneNumber) {
+			if (i == solutionMatrix.size()) {
+				try {
+					printer.write(phoneNumber + ": " + String.join(" ", partSolution));
+					printer.write('\n');
+				} catch (IOException e) {
+					throw new RuntimeException( e );
+				}
+				return;
+			}
+
+			for (String word : solutionMatrix.get(i)) {
+				partSolution.add(word);
+				printSolutionRec(i + 1, partSolution, solutionMatrix, phoneNumber);
+				partSolution.remove(partSolution.size() - 1);
+			}
+		}
+
+		/**
+		 * Does nothing
+		 */
+		public void onEnd() {}
+	}
+
+	/**
+	 * Counts the total number of solutions
+	 */
+	private static class SolutionCounter implements SolutionConsumer {
+		private int solutionCount = 0;
+		private BufferedWriter printer;
+
+		public SolutionCounter(BufferedWriter printer) {
+			this.printer = printer;
+		}
+
+		/**
+		 * Counts the number of solution in an irregural matrix containing
+		 * the encodings of the phone number
+		 * 
+		 * @param phoneNumber the phone number to be encoded
+		 * @param solutionMatrix irregular matrix containing the encodings
+		 */
+		public void onSolution(String phoneNumber, List<List<String>> solutionMatrix) {
+			int count = 1;
+			for (int i = 0; i < solutionMatrix.size(); i++) {
+				count *= solutionMatrix.get(i).size();
+			}
+			solutionCount += count;
+		}
+
+		/**
+		 * Prints the solution count
+		 */
+		public void onEnd() {
+			try {
+				printer.write(Integer.toString(solutionCount));
+				printer.write('\n');
+			} catch (IOException e) {
+				throw new RuntimeException( e );
+			}
+		}
+	}
+
+	/**
 	 * Implements the solution to the problem
 	 * 
 	 * @author David Alvarez Fidalgo
@@ -72,15 +190,16 @@ public class Faster {
 		private List<Integer> phoneNumber;
 		private int maxWordLength;
 		private int minWordLength;
-		private BufferedWriter printer;
+		private SolutionConsumer consumer;
 
 		/**
 		 * Creates an instance of the encoder and loads the words from a dictionary file
 		 * 
 		 * @param dictionaryFileName name of the file containing the words
+		 * @param consumer consumes the solutions found by the encoder
 		 */
-		public PhoneEncoder(String dictionaryFileName, BufferedWriter printer) {
-			this.printer = printer;
+		public PhoneEncoder(String dictionaryFileName, SolutionConsumer consumer) {
+			this.consumer = consumer;
 			loadDict(dictionaryFileName);
 		}
 
@@ -97,12 +216,7 @@ public class Faster {
 			// one letter,
 			// the only solution is the digit itself
 			if (phoneNumber.size() == 1 && minWordLength > 1) {
-				try {
-					printer.write(phoneNumberStr + ": " + phoneNumber.get(0).toString());
-					printer.write('\n');
-				} catch (IOException e) {
-                    throw new RuntimeException( e );
-                }
+				consumer.onSolution(phoneNumberStr, List.of(List.of(phoneNumber.get(0).toString())));
 				return;
 			}
 
@@ -114,6 +228,44 @@ public class Faster {
 			}
 
 			encodeRec(0, new ArrayList<>(), false);
+		}
+
+		/**
+		 * Recursive method that builds the solution. We reduce the number of steps
+		 * needed to encode a phone number by grouping words by its length. The partial
+		 * solution is an irregular matrix that holds a sequence of list with words of
+		 * the same length. E. g. if 123 translates to both "foo" and "bar" and the
+		 * number to encode is 12345, we can group "foo" and "bar", and then encode 45
+		 * only one time, instead of having to do it twice.
+		 * 
+		 * @param digitPos     position of the current phone number digit
+		 * @param partSolution current partial solution
+		 * @param lastWasDigit whether the last string added to the partial solution was
+		 *                     a digit or not
+		 */
+		private void encodeRec(int digitPos, List<List<String>> partSolution, boolean lastWasDigit) {
+			Map<Integer, List<String>> words = dict.findWords(phoneNumber, digitPos);
+			boolean wordsFound = !words.isEmpty();
+
+			// If no word was found, we add the digit to the solution
+			if (!wordsFound) {
+				// We can't have two consecutive digits in the solution
+				if (lastWasDigit)
+					return;
+				List<String> wordList = new ArrayList<>();
+				wordList.add(Integer.toString(phoneNumber.get(digitPos)));
+				words.put(1, wordList);
+			}
+
+			for (Map.Entry<Integer, List<String>> entry : words.entrySet()) {
+				partSolution.add(entry.getValue());
+				if (digitPos + entry.getKey() == phoneNumber.size()) {
+					consumer.onSolution(this.phoneNumberStr, partSolution);
+				} else {
+					encodeRec(digitPos + entry.getKey(), partSolution, !wordsFound);
+				}
+				partSolution.remove(partSolution.size() - 1);
+			}
 		}
 
 		/**
@@ -158,97 +310,6 @@ public class Faster {
 					phoneNumber.add((int) phoneNumberStr.charAt(i) - 48);
 				}
 			}
-		}
-
-		/**
-		 * Recursive method that builds the solution. We reduce the number of steps
-		 * needed to encode a phone number by grouping words by its length. The partial
-		 * solution is an irregular matrix that holds a sequence of list with words of
-		 * the same length. E. g. if 123 translates to both "foo" and "bar" and the
-		 * number to encode is 12345, we can group "foo" and "bar", and then encode 45
-		 * only one time, instead of having to do it twice.
-		 * 
-		 * @param digitPos     position of the current phone number digit
-		 * @param partSolution current partial solution
-		 * @param lastWasDigit whether the last string added to the partial solution was
-		 *                     a digit or not
-		 */
-		private void encodeRec(int digitPos, List<List<String>> partSolution, boolean lastWasDigit) {
-			Map<Integer, List<String>> words = dict.findWords(phoneNumber, digitPos);
-			boolean wordsFound = !words.isEmpty();
-
-			// If no word was found, we add the digit to the solution
-			if (!wordsFound) {
-				// We can't have two consecutive digits in the solution
-				if (lastWasDigit)
-					return;
-				List<String> wordList = new ArrayList<>();
-				wordList.add(Integer.toString(phoneNumber.get(digitPos)));
-				words.put(1, wordList);
-			}
-
-			for (Map.Entry<Integer, List<String>> entry : words.entrySet()) {
-				partSolution.add(entry.getValue());
-				if (digitPos + entry.getKey() == phoneNumber.size()) {
-					printSolution(partSolution);
-				} else {
-					encodeRec(digitPos + entry.getKey(), partSolution, !wordsFound);
-				}
-				partSolution.remove(partSolution.size() - 1);
-			}
-		}
-
-		/**
-		 * Transforms an irregular matrix containing the encodings of a phone number
-		 * into a list of solutions
-		 * 
-		 * @param solutionMatrix irregular matrix containing the encodings
-		 * @return list of solutions
-		 */
-		private void printSolution(List<List<String>> solutionMatrix) {
-			printSolutionRec(0, new ArrayList<>(), solutionMatrix);
-		}
-
-		/**
-		 * Recursively transforms an irregular matrix containing the encodings of a
-		 * phone number into a list of solutions
-		 * 
-		 * @param i              next x index in the matrix
-		 * @param partSolution   current partial solution
-		 * @param solutionMatrix irregular matrix containing the encodings of a phone
-		 *                       number
-		 * @param solutionsList  list of solutions
-		 */
-		private void printSolutionRec(int i, List<String> partSolution, List<List<String>> solutionMatrix) {
-			if (i == solutionMatrix.size()) {
-				try {
-					printer.write(phoneNumberStr + ": " + joinWordList(partSolution));
-					printer.write('\n');
-				} catch (IOException e) {
-                    throw new RuntimeException( e );
-                }
-				return;
-			}
-
-			for (String word : solutionMatrix.get(i)) {
-				partSolution.add(word);
-				printSolutionRec(i + 1, partSolution, solutionMatrix);
-				partSolution.remove(partSolution.size() - 1);
-			}
-		}
-
-		/**
-		 * Joins a list of words leaving spaces between them
-		 * 
-		 * @param wordList list of words
-		 * @return string containing the list of words joined with spaces between them
-		 */
-		private String joinWordList(List<String> wordList) {
-			StringBuilder sb = new StringBuilder(wordList.get(0));
-			for (int i = 1; i < wordList.size(); i++) {
-				sb.append(" " + wordList.get(i));
-			}
-			return sb.toString();
 		}
 
 		/**
