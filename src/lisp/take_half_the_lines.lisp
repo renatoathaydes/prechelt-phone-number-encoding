@@ -1,0 +1,11 @@
+(defun take-half (in-file out-file)
+  (with-open-file (in in-file)
+    (with-open-file (out out-file :direction :output :if-exists :supersede)
+      (loop for word = (read-line in nil)
+            for take-it = T then (setf take-it (not take-it))
+            while word when take-it do (format out "~a~%" word)))))
+
+(let ((args (rest sb-ext:*posix-argv*)))
+  (if (= 2 (length args))
+      (take-half (first args) (second args))
+      (error "expected two arguments")))
