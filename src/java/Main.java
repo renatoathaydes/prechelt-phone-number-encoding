@@ -11,7 +11,6 @@ import java.util.Locale;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static java.nio.charset.StandardCharsets.US_ASCII;
@@ -22,26 +21,79 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
  * @author Renato Athaydes
  */
 final class Main {
-    public static void main( String[] args ) throws IOException {
-        var words = new InputParser( WordsInputCleaner::clean )
-                .parse( new File( args.length > 0 ? args[ 0 ] : "tests/words.txt" ) );
-
-        var encoder = new PhoneNumberEncoder( words );
-
-        var printer = new BufferedWriter(new OutputStreamWriter(System.out, US_ASCII));
-
-        try (printer) {
-            new InputParser(PhoneNumberCleaner::clean)
-                    .parse(new File( args.length > 1 ? args[ 1 ] : "tests/numbers.txt" ) )
-                    .forEach( phone -> encoder.encode(phone, ( item ) -> {
-                        try {
-                            printer.write( item.toString() );
-                            printer.write( '\n' );
-                        } catch (IOException e) {
-                            throw new RuntimeException( e );
-                        }
-                    }));
+    public static void main(String[] args) throws IOException {
+        if (args.length < 3) {
+            throw new RuntimeException("missing args: print-or-count dictionary numbers...");
         }
+
+        var solutionHandler = SolutionHandler.named(args[0]);
+
+        var words = new InputParser(WordsInputCleaner::clean)
+            .parse(new File(args[1]));
+
+        var encoder = new PhoneNumberEncoder(words);
+
+        try {
+            new InputParser(PhoneNumberCleaner::clean).parse(new File(args[2]))
+                .forEach(phone -> encoder.encode(phone, (solution) -> {
+                            solutionHandler.handle(phone.original(), solution);
+                        }));
+        } finally {
+            solutionHandler.endFile();
+        }
+    }
+}
+
+interface SolutionHandler {
+    static SolutionHandler named(String name) {
+        return switch (name) {
+        case "print" -> new StdoutPrinter();
+        case "count" -> new SolutionCounter();
+        default -> throw new IllegalArgumentException("Unknown option");
+        };
+    }
+    
+    void handle(String phoneNumber, Iterable<String> words);
+
+    void endFile();
+}
+
+final class StdoutPrinter implements SolutionHandler {
+    private final BufferedWriter writer =
+        new BufferedWriter( new OutputStreamWriter( System.out, US_ASCII ) );
+    
+    @Override
+    public void handle(String phoneNumber, Iterable<String> words) {
+        try {
+            writer.write(phoneNumber + ": " + String.join(" ", words) + "\n");
+        } catch ( IOException e ) {
+            throw new RuntimeException( e );
+        }
+    }
+
+    @Override
+    public void endFile() {
+        try {
+            writer.close();
+        } catch ( IOException e ) {
+            throw new RuntimeException( e );
+        }
+    }
+}
+
+final class SolutionCounter implements SolutionHandler {
+    private int count;
+
+    @Override
+
+    public void handle(String phoneNumber, Iterable<String> words) {
+        count++;
+    }
+
+    @Override
+    public void endFile() {
+        System.out.println(count);
+        count = 0;
     }
 }
 
@@ -76,7 +128,7 @@ final class PhoneNumberEncoder {
         //System.out.println( "Took " + ( System.currentTimeMillis() - start ) + "ms to load dictionary" );
     }
 
-    void encode( Item phone, Consumer<Item> onSolution ) {
+    void encode( Item phone, Consumer<Iterable<String>> onSolution ) {
         dictionary.forEachSolution( phone, onSolution );
     }
 }
@@ -99,12 +151,9 @@ final class Trie {
             this.digit = digit;
         }
 
-        static Item toItem( List<Node> nodes, Item phone ) {
-            var solution = nodes.stream()
-                    .map( node -> node.item == null ? node.digit : node.item.original() )
-                    .map( Object::toString )
-                    .collect( Collectors.joining( " " ) );
-            return new Item( phone.original(), solution );
+        @Override
+        public String toString() {
+            return item == null ? Integer.toString(digit) : item.original();
         }
     }
 
@@ -138,10 +187,14 @@ final class Trie {
         }
     }
 
-    void forEachSolution( Item phone, Consumer<Item> onSolution ) {
+    void forEachSolution( Item phone, Consumer<Iterable<String>> onSolution ) {
         char[] chars = phone.result().toCharArray();
-        completeSolution( List.of(), chars, 0, true, solution ->
-                onSolution.accept( Node.toItem( solution, phone ) ) );
+        completeSolution( new ArrayList( 8 ), chars, 0, true, (nodes) ->
+                          onSolution.accept( asIterable( nodes ) ));
+    }
+
+    private Iterable<String> asIterable( List<Node> nodes ) {
+        return () -> nodes.stream().map(Object::toString).iterator();
     }
 
     /**
@@ -169,13 +222,14 @@ final class Trie {
                 // each word in this trie may provide a new solution
                 for ( Item word : trie.values ) {
                     wordFound = true;
-                    var nextSolution = append( solution, new Node( word ) );
+                    solution.add( new Node( word ) );
                     // accept solution if we're at the end
                     if ( atEndOfInput ) {
-                        onSolution.accept( nextSolution );
+                        onSolution.accept( solution );
                     } else {
-                        root.completeSolution( nextSolution, chars, index + 1, true, onSolution );
+                        root.completeSolution( solution, chars, index + 1, true, onSolution );
                     }
+                    solution.remove(solution.size() - 1);
                 }
             }
 
@@ -193,13 +247,15 @@ final class Trie {
 
     private void tryInjectDigit( List<Node> solution, char[] chars,
                                  int index, Consumer<List<Node>> onSolution ) {
-        solution = append( solution, new Node( chars[ index ] - 48 ) );
+        solution.add( new Node( chars[ index ] - 48 ) );
         // accept solution if we're at the end
         if ( index + 1 == chars.length ) {
             onSolution.accept( solution );
+            solution.remove( solution.size() - 1 );
             return;
         }
         root.completeSolution( solution, chars, index + 1, false, onSolution );
+        solution.remove( solution.size() - 1 );
     }
 
     //    E | J N Q | R W X | D S Y | F T | A M | C I V | B K U | L O P | G H Z
@@ -219,13 +275,6 @@ final class Trie {
             case 'g', 'h', 'z' -> 9;
             default -> throw new RuntimeException( "Invalid char: " + c );
         };
-    }
-
-    static <T> List<T> append( List<T> list, T item ) {
-        var result = new ArrayList<T>( list.size() + 1 );
-        result.addAll( list );
-        result.add( item );
-        return Collections.unmodifiableList( result );
     }
 }
 

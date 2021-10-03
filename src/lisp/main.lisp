@@ -8,16 +8,36 @@
   "A hash table mapping a phone number (integer) to a list of words from the
   input dictionary that produce that number.")
 
-(defun main (&optional (dict "tests/words.txt") (nums "tests/numbers.txt") (dict-size 100))
+(defun choose-handler (print-or-count)
+  "Chooses a solution handler function.
+   When a numbers file is fully consumed, call the function with nil words to signal EOF."
+  (cond
+    ((string= print-or-count "print")
+     #'(lambda (num words)
+         (when words (format t "~a:~{ ~a~}~%" num (reverse words)))))
+    ((string= print-or-count "count")
+     (let ((count 0))
+       #'(lambda (num words)
+           (if words
+               (incf count)
+               (progn ;; no words is the EOF signal
+                 (format t "~a~%" count)
+                 (setf count 0)))))) ;; reset count for the next file
+    (t (error "Unknown option: ~a" print-or-count))))
+    
+
+(defun main (&optional print-or-count (dict "tests/words.txt") (nums "tests/numbers.txt") (dict-size 100))
   "Read the input file ¨DICT and load it into *dict*.  Then for each line in
   NUMS, print all the translations of the number into a sequence of words,
   according to the rules of translation."
-  (setf *dict* (load-dictionary dict dict-size))
-  (with-open-file (in nums)
-    (loop for num = (read-line in nil) while num do
-          (print-translations num (remove-if-not #'digit-char-p num)))))
+  (let ((handler (choose-handler print-or-count)))
+    (setf *dict* (load-dictionary dict dict-size))
+    (with-open-file (in nums)
+      (loop for num = (read-line in nil) while num do
+        (find-translations handler num (remove-if-not #'digit-char-p num))))
+    (funcall handler "" nil)))
 
-(defun print-translations (num digits &optional (start 0) (words nil))
+(defun find-translations (handler num digits &optional (start 0) (words nil))
   "Print each possible translation of NUM into a string of words.  DIGITS
   must be WORD with non-digits removed.  On recursive calls, START is the
   position in DIGITS at which to look for the next word, and WORDS is the list
@@ -36,17 +56,17 @@
   the same integer as 2.  Therefore we prepend a 1 to every number, and R
   becomes 12 and ER becomes 102."
   (if (>= start (length digits))
-      (format t "~a:~{ ~a~}~%" num (reverse words))
+      (funcall handler num words)
       (let ((found-word nil)
             (n 1)) ; leading zero problem
         (loop for i from start below (length digits) do
               (setf n (+ (* 10 n) (nth-digit digits i)))
               (loop for word in (gethash n *dict*) do
                  (setf found-word t)
-                 (print-translations num digits (+ 1 i) (cons word words))))
+                 (find-translations handler num digits (+ 1 i) (cons word words))))
         (when (and (not found-word) (not (numberp (first words))))
-           (print-translations num digits (+ start 1)
-                               (cons (nth-digit digits start) words))))))
+           (find-translations handler num digits (+ start 1)
+                              (cons (nth-digit digits start) words))))))
 
 (defun load-dictionary (file size)
   "Create a hashtable from the file of words (one per line).  Takes a hint

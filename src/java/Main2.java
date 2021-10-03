@@ -25,7 +25,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
  *     a digit, while the CL program checks the <b>first</b> word.
  *     </li>
  *     <li>
- *     The {@code printTranslations} method in Java actually does not directly print the solutions,
+ *     The {@code findTranslations} method in Java actually does not directly print the solutions,
  *     but takes a {@link BiConsumer} as an argument, which is called with each (number, solution) found.
  *     This was done to make the code more easily testable.
  *     </li>
@@ -34,38 +34,89 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
  * @author Renato Athaydes
  */
 final class Main2 {
-    public static void main( String[] args ) throws IOException, InterruptedException {
-        var printer = new BufferedWriter( new OutputStreamWriter( System.out, US_ASCII ) );
-
-        PhoneNumberEncoder2 encoder;
-
-        try (var dictReader = new BufferedReader( new FileReader( args.length > 0
-                                                                 ? args[ 0 ]
-                                                                 : "tests/words.txt", US_ASCII ) ) ) {
-            encoder = new PhoneNumberEncoder2( dictReader.lines(), printer );
-        }
-        
-        try ( var numbers = new BufferedReader( new FileReader( args.length > 1
-                                                               ? args[1]
-                                                               : "tests/numbers.txt", US_ASCII ) ) ) {
-            numbers.lines().forEach( encoder::encode );
+    public static void main(String[] args) throws IOException, InterruptedException {
+        if (args.length < 3) {
+            throw new RuntimeException("missing args: print-or-count dictionary numbers...");
         }
 
-        printer.close();
+        var solutionHandler = SolutionHandler2.named(args[0]);
+        var wordsReader = new BufferedReader(new FileReader(args[1], US_ASCII));
+        var encoder = new PhoneNumberEncoder2(wordsReader.lines(), solutionHandler);
+
+        try ( wordsReader ) {
+            for ( var i = 2; i < args.length; i++ ) {
+                try ( var phonesReader = new BufferedReader(new FileReader(args[i], US_ASCII))) {
+                    phonesReader.lines().forEach(encoder::encode);
+                    solutionHandler.endFile();
+                }
+            }
+        }
+    }
+}
+
+interface SolutionHandler2 {
+    static SolutionHandler2 named(String name) {
+        return switch (name) {
+        case "print" -> new StdoutPrinter2();
+        case "count" -> new SolutionCounter2();
+        default -> throw new IllegalArgumentException("Unknown option");
+        };
+    }
+    
+    void handle(String phoneNumber, List<String> words);
+
+    void endFile();
+}
+
+final class StdoutPrinter2 implements SolutionHandler2 {
+    private final BufferedWriter writer =
+        new BufferedWriter( new OutputStreamWriter( System.out, US_ASCII ) );
+    
+    @Override
+    public void handle(String phoneNumber, List<String> words) {
+        try {
+            writer.write(phoneNumber + ": " + String.join(" ", words) + "\n");
+        } catch ( IOException e ) {
+            throw new RuntimeException( e );
+        }
+    }
+
+    @Override
+    public void endFile() {
+        try {
+            writer.flush();
+        } catch ( IOException e ) {
+            throw new RuntimeException( e );
+        }
+    }
+}
+
+final class SolutionCounter2 implements SolutionHandler2 {
+    private int count;
+
+    @Override
+    public void handle(String phoneNumber, List<String> words) {
+        count++;
+    }
+
+    @Override
+    public void endFile() {
+        System.out.println(count);
+        count = 0;
     }
 }
 
 final class PhoneNumberEncoder2 {
     private final Map<ByteBuffer, List<String>> dict;
-    private final BufferedWriter printer;
+    private final SolutionHandler2 solutionHandler;
 
-    PhoneNumberEncoder2(Stream<String> words, BufferedWriter printer) {
-        this.printer = printer;
+    PhoneNumberEncoder2(Stream<String> words, SolutionHandler2 solutionHandler) {
+        this.solutionHandler = solutionHandler;
         dict = loadDictionary( words );
     }
 
     void encode( String phone ) {
-        printTranslations( phone, removeIfNotLetterOrDigit( phone.toCharArray() ), 0, new ArrayList<>() );
+        findTranslations( phone, removeIfNotLetterOrDigit( phone.toCharArray() ), 0, new ArrayList<>() );
     }
 
     private byte[] removeIfNotLetterOrDigit( char[] chars ) {
@@ -84,9 +135,9 @@ final class PhoneNumberEncoder2 {
         return result;
     }
 
-    private void printTranslations( String num, byte[] digits, int start, List<String> words ) {
+    private void findTranslations( String num, byte[] digits, int start, List<String> words ) {
         if ( start >= digits.length ) {
-            printSolution( num, words );
+            solutionHandler.handle( num, words );
             return;
         }
         var foundWord = false;
@@ -99,25 +150,15 @@ final class PhoneNumberEncoder2 {
                 foundWord = true;
                 for ( String word : foundWords ) {
                     words.add( word );
-                    printTranslations( num, digits, i + 1, words );
+                    findTranslations( num, digits, i + 1, words );
                     words.remove( words.size() - 1 );
                 }
             }
         }
         if ( !foundWord && !isLastItemDigit( words ) ) {
             words.add( Integer.toString( nthDigit( digits, start ) ) );
-            printTranslations( num, digits, start + 1, words );
+            findTranslations( num, digits, start + 1, words );
             words.remove( words.size() - 1 );
-        }
-    }
-
-    private void printSolution( String num, List<String> words ) {
-        // writing it out by invoking println several times like Rust does is counter-productive
-        try {
-            printer.write( num + ": " + String.join( " ", words ) );
-            printer.write( '\n' );
-        } catch ( IOException e ) {
-            throw new RuntimeException( e );
         }
     }
 

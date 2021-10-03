@@ -2,9 +2,12 @@ out/
 build/
 target/
 *.txt
+*.fasl
 !dictionary.txt
 !input.txt
 !output.txt
+!words-quarter.txt
 Cargo.lock
 phone_encoder
 benchmark_runner
+benchmark-result.csv

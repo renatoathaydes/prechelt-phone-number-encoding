@@ -22,6 +22,11 @@ impl Display for WordOrDigit<'_> {
     }
 }
 
+#[derive(PartialEq, Eq)]
+enum ResultsOption {
+    Print,
+    Count(usize),
+}
 
 /// Port of Peter Norvig's Lisp solution to the Prechelt phone-encoding problem.
 ///
@@ -30,6 +35,12 @@ impl Display for WordOrDigit<'_> {
 fn main() -> io::Result<()> {
 // drop itself from args
     let mut args = args().skip(1);
+    let res_opt = args.next().unwrap_or_else(|| "".to_string());
+    let mut results_opt = match res_opt.as_ref() {
+        "print" => ResultsOption::Print,
+        "count" => ResultsOption::Count(0),
+        _ => panic!("Bad first argument (expected 'print' or 'count')"),
+    };
     let words_file = args.next().unwrap_or_else(|| "tests/words.txt".into());
     let input_file = args.next().unwrap_or_else(|| "tests/numbers.txt".into());
     
@@ -44,12 +55,16 @@ fn main() -> io::Result<()> {
             .filter(char::is_ascii_digit)
             .map(|ch| ch as u8)
             .collect();
-        print_translations(&num, &digits, &mut Vec::new(), &dict, &mut writer)?;
+        find_translations(&mut results_opt, &num, &digits, &mut Vec::new(), &dict, &mut writer)?;
+    }
+    if let ResultsOption::Count(counter) = results_opt {
+        println!("{}", counter);
     }
     Ok(())
 }
 
-fn print_translations<'a>(
+fn find_translations<'a>(
+    results_opt: &mut ResultsOption,
     num: &str,
     digits: &[u8],
     words: &mut Vec<WordOrDigit<'a>>,
@@ -57,7 +72,7 @@ fn print_translations<'a>(
     writer: &mut BufWriter<StdoutLock>,
 ) -> io::Result<()> {
     if digits.is_empty() {
-        return print_solution(num, words, writer);
+        return handle_solution(results_opt, num, words, writer);
     }
     let mut found_word = false;
     for i in 0..digits.len() {
@@ -66,7 +81,7 @@ fn print_translations<'a>(
             for word in found_words {
                 found_word = true;
                 words.push(WordOrDigit::Word(word));
-                print_translations(num, rest_of_digits, words, dict, writer)?;
+                find_translations(results_opt, num, rest_of_digits, words, dict, writer)?;
                 words.pop();
             }
         }
@@ -78,17 +93,22 @@ fn print_translations<'a>(
     if !last_is_digit {
         let digit = digits[0] - b'0';
         words.push(WordOrDigit::Digit(digit));
-        print_translations(num, &digits[1..], words, dict, writer)?;
+        find_translations(results_opt, num, &digits[1..], words, dict, writer)?;
         words.pop();
     }
     Ok(())
 }
 
-fn print_solution(
+fn handle_solution(
+    results_opt: &mut ResultsOption,
     num: &str,
     words: &[WordOrDigit<'_>],
     writer: &mut BufWriter<StdoutLock>,
 ) -> io::Result<()> {
+    if let ResultsOption::Count(counter) = results_opt {
+        *counter += 1;
+        return Ok(())
+    }
     write!(writer, "{}:", num)?;
     if words.is_empty() {
         writeln!(writer)?;

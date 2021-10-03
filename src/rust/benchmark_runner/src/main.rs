@@ -43,7 +43,5 @@ fn main() {
     }
 
     let total_time = Instant::now().duration_since(start_time);
-
-    println!("Proc,Memory(bytes),Time(ms)");
     println!("{},{},{}", proc_name, mem, total_time.as_millis());
 }
