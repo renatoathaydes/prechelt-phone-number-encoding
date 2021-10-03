@@ -7,10 +7,15 @@
 #include <string.h>
 #include <time.h>
 
-int max_word_length = 10;
-int min_word_lenth = 2;
+const int MODE_PRINT = 0;
+const int MODE_COUNT = 1;
+
+int mode;
+int max_word_length = 0;
+int min_word_lenth = 100;
 word_tree_t dict;
 char * current_number;
+int solution_count;
 
 void solve(char *);
 
@@ -22,8 +27,9 @@ int main(int argc, char * argv[]) {
 
 	wt_init(&dict, 0);
 
-	char * dict_file_name = argc > 1 ? argv[1] : "tests/words.txt";
-	char * numbers_file_name = argc > 2 ? argv[2] : "tests/numbers.txt";
+	mode = argc > 1 && strcmp(argv[1], "count") == 0 ? MODE_COUNT : MODE_PRINT;
+	char * dict_file_name = argc > 2 ? argv[2] : "tests/words.txt";
+	char * numbers_file_name = argc > 3 ? argv[3] : "tests/numbers.txt";
 
 	FILE * dict_file = fopen(dict_file_name, "r");
 	if(dict_file == NULL) {
@@ -42,6 +48,11 @@ int main(int argc, char * argv[]) {
 	for (int i = 0; i < dict_file_size; i++) {
 		if (buffer[i] == '\n') {
 			buffer[i] = '\0';
+			int length = strlen(current_word);
+			if (length > max_word_length)
+				max_word_length = length;
+			if (length < min_word_lenth)
+				min_word_lenth = length;
 			wt_add(&dict, current_word);
 			current_word = buffer + i + 1;
 		}
@@ -68,6 +79,8 @@ int main(int argc, char * argv[]) {
 			current_number = buffer + i + 1;
 		}
 	}
+
+	if (mode == MODE_COUNT) printf("%d\n", solution_count);
 
 	/*
    	t2 = clock();
@@ -116,6 +129,14 @@ void print_solutions(vector_t * solution_matrix) {
 	free(part_solution);
 }
 
+void count_solutions(vector_t * solution_matrix) {
+	int count = 1;
+	for (int i = 0; i < solution_matrix->length; i++) {
+		count *= ((vector_t *) vector_get(solution_matrix, i))->length;
+	}
+	solution_count += count;
+}
+
 void solve_rec(vector_t * phone_number, unsigned int digit_pos, vector_t * part_solution,
 		unsigned int last_was_digit) {
 	vector_t * words[max_word_length - 1];
@@ -145,7 +166,8 @@ void solve_rec(vector_t * phone_number, unsigned int digit_pos, vector_t * part_
 		if (words[i] != NULL) {
 			vector_push(part_solution, words[i]);
 			if (digit_pos + i + 1== phone_number->length) {
-				print_solutions(part_solution);
+				if (mode == MODE_PRINT) print_solutions(part_solution);
+				else if (mode == MODE_COUNT) count_solutions(part_solution);
 			} else {
 				solve_rec(phone_number, digit_pos + i + 1, part_solution, !words_found);
 			}
@@ -162,7 +184,10 @@ void solve(char * phone_number_str) {
 	// If the phone number has only one digit and the shortest word has more than
 	// one letter, the only solution is the digit itself
 	if (phone_number->length == 1 && min_word_lenth > 1) {
-		printf("%s: %d\n", phone_number_str, * (int *) vector_get(phone_number, 0));
+		if (mode == MODE_PRINT)
+			printf("%s: %d\n", phone_number_str, * (int *) vector_get(phone_number, 0));
+		else if (mode == MODE_COUNT)
+			solution_count += 1;
 		vector_free(phone_number);
 		free(phone_number);
 		return;

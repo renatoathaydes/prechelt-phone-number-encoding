@@ -23,11 +23,9 @@ public class Faster {
 		// long t1 = System.currentTimeMillis();
 
 		BufferedWriter printer = new BufferedWriter(new OutputStreamWriter(System.out, US_ASCII));
-		SolutionConsumer consumer;
-
-		if (args.length > 0 && args[0].equals("count")) consumer = new SolutionCounter(printer);
-		else consumer = new SolutionPrinter(printer);
-
+		SolutionConsumer consumer = args.length > 0 && args[0].equals("count") ? 
+			new SolutionCounter(printer) : new SolutionPrinter(printer);
+		
 		PhoneEncoder pe = new PhoneEncoder(args.length > 1 ? args[1] : "tests/words.txt", consumer);
 		List<String> phoneNumbers = loadPhoneNumbers(args.length > 2 ? args[2] : "tests/numbers.txt");
 
