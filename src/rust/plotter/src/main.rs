@@ -1,10 +1,11 @@
-use linked_hash_map::LinkedHashMap;
-use plotters::prelude::*;
-use plotters_svg::SVGBackend;
 use std::env::args;
 use std::fs::File;
 use std::io::{self, BufRead};
 use std::path::Path;
+
+use linked_hash_map::LinkedHashMap;
+use plotters::prelude::*;
+use plotters_svg::SVGBackend;
 
 struct DataPoint {
     run: u32,
@@ -14,10 +15,10 @@ struct DataPoint {
 
 const OUT_FILE_NAME: &str = "benchmark-result.svg";
 const COLORS: [&RGBColor; 5] = [
+    &BLUE,
     &RED,
     &RGBColor(255, 165, 0),
     &RGBColor(0, 100, 0),
-    &BLUE,
     &MAGENTA,
 ];
 
@@ -29,6 +30,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut max_mem: u32 = 100;
     let mut max_time: u32 = 100;
     let mut max_run: u32 = 0;
+    let mut current_run: u32 = 0;
+    let mut current_proc = String::new();
 
     for line in read_lines(csv)? {
         let entry = line?;
@@ -36,7 +39,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         if parts[0] == "Proc" {
             continue;
         } // header
-        let p = data_point(&parts)?;
+        if parts[0] == &current_proc {
+            current_run += 1;
+        } else {
+            current_run = 0;
+            current_proc = parts[0].to_string();
+        }
+        let p = data_point(current_run, &parts)?;
         if p.mem > max_mem {
             max_mem = p.mem;
         }
@@ -67,7 +76,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             "Time and Memory Comparison",
             ("sans-serif", 32.0).into_font(),
         )
-        .build_cartesian_2d(0..max_run, 0..max_time)?
+        .build_cartesian_2d(0..max_run, (0..max_time).log_scale())?
         .set_secondary_coord(0..max_run, 0..max_mem);
 
     chart
@@ -108,7 +117,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .configure_series_labels()
         .border_style(&BLACK)
         .background_style(&RGBColor(220, 220, 220).mix(0.5))
-        .position(SeriesLabelPosition::UpperMiddle)
+        .position(SeriesLabelPosition::LowerRight)
         .draw()?;
 
     // To avoid the IO failure being ignored silently, we manually call the present function
@@ -118,16 +127,15 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn data_point(entry: &[&str]) -> Result<DataPoint, Box<dyn std::error::Error>> {
-    let run = entry[1].parse::<u32>()?;
-    let mem = entry[2].parse::<u32>()?;
-    let time = entry[3].parse::<u32>()?;
+fn data_point(run: u32, entry: &[&str]) -> Result<DataPoint, Box<dyn std::error::Error>> {
+    let mem = entry[1].parse::<u32>()?;
+    let time = entry[2].parse::<u32>()?;
     Ok(DataPoint { run, mem, time })
 }
 
 fn read_lines<P>(filename: P) -> io::Result<io::Lines<io::BufReader<File>>>
-where
-    P: AsRef<Path>,
+    where
+        P: AsRef<Path>,
 {
     let file = File::open(filename)?;
     Ok(io::BufReader::new(file).lines())
