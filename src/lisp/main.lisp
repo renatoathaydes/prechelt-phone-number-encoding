@@ -14,7 +14,7 @@
   (cond
     ((string= print-or-count "print")
      #'(lambda (num words)
-         (when words (format t "~a:~{ ~a~}~%" num (coerce words 'list)))))
+         (when words (format t "~a:~{ ~a~}~%" num (reverse words)))))
     ((string= print-or-count "count")
      (let ((count 0))
        #'(lambda (num words)
@@ -37,13 +37,7 @@
         (find-translations handler num (remove-if-not #'digit-char-p num))))
     (funcall handler "" nil)))
 
-(defun not-last-digitp (words)
-  (or (eq (length words) 0)
-      (let ((last-elt (aref words (- (length words) 1))))
-        (not (digit-char-p (aref last-elt 0))))))
-
-(defun find-translations (handler num digits &optional (start 0)
-                                               (words (make-array 8 :fill-pointer 0 :element-type 'string :initial-element "" :adjustable T)))
+(defun find-translations (handler num digits &optional (start 0) (words nil))
   "Print each possible translation of NUM into a string of words.  DIGITS
   must be WORD with non-digits removed.  On recursive calls, START is the
   position in DIGITS at which to look for the next word, and WORDS is the list
@@ -68,14 +62,11 @@
         (loop for i from start below (length digits) do
               (setf n (+ (* 10 n) (nth-digit digits i)))
               (loop for word in (gethash n *dict*) do
-                (setf found-word t)
-                (vector-push-extend word words)
-                (find-translations handler num digits (+ 1 i) words)
-                (vector-pop words)))
-        (when (and (not found-word) (not-last-digitp words))
-          (vector-push-extend (format nil "~d" (nth-digit digits start)) words)
-          (find-translations handler num digits (+ start 1) words)
-          (vector-pop words)))))
+                 (setf found-word t)
+                 (find-translations handler num digits (+ 1 i) (cons word words))))
+        (when (and (not found-word) (not (numberp (first words))))
+           (find-translations handler num digits (+ start 1)
+                              (cons (nth-digit digits start) words))))))
 
 (defun load-dictionary (file size)
   "Create a hashtable from the file of words (one per line).  Takes a hint
