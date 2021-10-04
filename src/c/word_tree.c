@@ -17,10 +17,9 @@ char * wt_clean_word(char * word, int * out_cleaned_length) {
 
 	int j = 0;
 	for (int i = 0; i < word_length; i++) {
-		if (word[i] != '\"') {
-			if (word[i] > 64 && word[i] < 91) clean_word[j++] = word[i] ^ 0x20;
-			else clean_word[j++] = word[i];
-		}
+		char letter = word[i];
+		if (letter > 64 && letter < 91) clean_word[j++] = letter ^ 0x20;
+		else if (letter > 96 && letter < 123) clean_word[j++] = word[i];
 	}
 
 	clean_word[j] = '\0';

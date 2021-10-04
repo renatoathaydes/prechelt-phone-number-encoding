@@ -46,6 +46,9 @@ int main(int argc, char * argv[]) {
 
 	char * current_word = buffer;
 	for (int i = 0; i < dict_file_size; i++) {
+		if (buffer[i] == '\r') {
+			buffer[i] = '\0';
+		}
 		if (buffer[i] == '\n') {
 			buffer[i] = '\0';
 			int length = strlen(current_word);
@@ -73,6 +76,9 @@ int main(int argc, char * argv[]) {
 
 	current_number = buffer;
 	for (int i = 0; i < numbers_file_size; i++) {
+		if (buffer[i] == '\r') {
+			buffer[i] = '\0';
+		}
 		if (buffer[i] == '\n') {
 			buffer[i] = '\0';
 			solve(current_number);
