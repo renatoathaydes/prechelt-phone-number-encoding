@@ -17,7 +17,7 @@ import static java.nio.charset.StandardCharsets.US_ASCII;
  * 
  * @author David Alvarez Fidalgo
  */
-public class Faster {
+public class MainFaster {
 
 	public static void main(String[] args) {
 		// long t1 = System.currentTimeMillis();
@@ -27,10 +27,9 @@ public class Faster {
 			new SolutionCounter(printer) : new SolutionPrinter(printer);
 		
 		PhoneEncoder pe = new PhoneEncoder(args.length > 1 ? args[1] : "tests/words.txt", consumer);
-		List<String> phoneNumbers = loadPhoneNumbers(args.length > 2 ? args[2] : "tests/numbers.txt");
 
 		try (printer) {
-			for (String number : phoneNumbers) pe.encode(number);
+			loadPhoneNumbers(args.length > 2 ? args[2] : "tests/numbers.txt", pe);
 			consumer.onEnd();
 			// printer.write(String.format("Time: %d ms\n", System.currentTimeMillis() - t1));
 		} catch (IOException e) {
@@ -44,22 +43,19 @@ public class Faster {
 	 * @param fileName name of the file
 	 * @return list of phone numbers
 	 */
-	private static List<String> loadPhoneNumbers(String fileName) {
+	private static void loadPhoneNumbers(String fileName, PhoneEncoder pe) {
 		BufferedReader file = null;
-		List<String> phoneNumbers = new ArrayList<>();
 
 		try {
 			file = new BufferedReader(new FileReader(fileName));
 			while (file.ready()) {
-				phoneNumbers.add(file.readLine().trim());
+				pe.encode(file.readLine().trim());
 			}
 		} catch (FileNotFoundException e) {
 			System.out.println("File not found: " + fileName);
 		} catch (IOException e) {
 			System.out.println("Error reading from file: " + fileName);
 		}
-
-		return phoneNumbers;
 	}
 
 	/**
