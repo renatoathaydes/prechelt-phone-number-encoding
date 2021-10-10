@@ -12,7 +12,8 @@ JVM_OPTIONS="-Xms20M -Xmx100M"
 
 COMMANDS=(
   "java $JVM_OPTIONS -cp build/java Main"  # Java
-  "sbcl --script src/lisp/main.fasl"       # Common Lisp
+  "java $JVM_OPTIONS -cp build/java Main2" # Java 2
+  "./lisp-phone-encoder"                   # Common Lisp
   "./rust"                                 # Rust
 )
 
@@ -23,7 +24,8 @@ javac src/java/util/*.java -d build/util
 
 echo "Compiling Lisp sources"
 cd src/lisp/
-sbcl --noinform --eval "(compile-file \"main.lisp\")" --eval "(quit)"
+sbcl --non-interactive --load build.lisp
+cp lisp-phone-encoder ../../
 cd ../..
 
 echo "Compiling Rust sources"
@@ -86,4 +88,4 @@ echo "Generating plot"
 ./plotter "$CSV_OUT"
 
 echo "Cleaning up"
-rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner" > /dev/null 2>&1 || true
+rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner ./lisp-phone-encoder" > /dev/null 2>&1 || true
