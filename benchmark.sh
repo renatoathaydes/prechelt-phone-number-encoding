@@ -9,14 +9,14 @@ set -e
 #
 
 COMMANDS=(
-  "java -Djava.util.logging.config.file=log-config/jul.properties -cp build/java Main"                               # Java (JUL)
-  "java -Djava.util.logging.manager=org.apache.logging.log4j.jul.LogManager -cp build/java:log-config:log4j-libs/* Main"  # Java (Log4j2)
-  "java -Djava.util.logging.config.file=log-config/jul-logback.properties -cp build/java:log-config:logback-libs/* Main"    # Java (Logback)
+  "java -Djava.util.logging.config.file=log-config/jul.properties -cp build/java:jul-libs/*:build/java:logback-libs/slf4j-api-1.7.33.jar Main"  # Java (JUL)
+  "java -cp build/java:logback-libs/slf4j-api-1.7.33.jar:log-config:log4j-libs/* Main"  # Java (Log4j2)
+  "java -cp build/java:log-config:logback-libs/* Main"    # Java (Logback)
 )
 
 echo "Compiling Java sources"
 rm -rf build || true
-javac src/java/*.java -d build/java
+javac -cp logback-libs/slf4j-api-1.7.33.jar src/java/*.java -d build/java
 javac src/java/util/*.java -d build/util
 
 echo "Compiling Rust sources"
