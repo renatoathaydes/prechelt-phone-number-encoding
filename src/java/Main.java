@@ -12,6 +12,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static java.lang.System.Logger.Level.INFO;
 import static java.nio.charset.StandardCharsets.US_ASCII;
 
 /**
@@ -25,10 +26,15 @@ final class Main {
                 .parse( new File( args.length > 0 ? args[ 0 ] : "tests/words.txt" ) );
 
         var encoder = new PhoneNumberEncoder( words );
+        var logger = System.getLogger( "Main" );
 
         new InputParser( PhoneNumberCleaner::clean )
                 .parse( new File( args.length > 1 ? args[ 1 ] : "tests/numbers.txt" ) )
-                .forEach( phone -> encoder.encode( phone, System.out::println ) );
+                .forEach( phone ->
+                        encoder.encode( phone, item -> {
+                            logger.log( INFO, "{0}: {1}", item.original(), item.result() );
+                        } ) );
+
     }
 
 }
