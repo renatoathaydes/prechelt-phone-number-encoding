@@ -6,8 +6,13 @@
             <pattern>%msg%n</pattern>
         </encoder>
     </appender>
+    <appender name="ASYNC_FILE"
+              class="ch.qos.logback.classic.AsyncAppender">
+        <appender-ref ref="FILE" />
+        <includeCallerData>false</includeCallerData>
+    </appender>
 
     <root level="info">
-        <appender-ref ref="FILE" />
+        <appender-ref ref="ASYNC_FILE" />
     </root>
 </configuration>
