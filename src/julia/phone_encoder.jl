@@ -7,7 +7,7 @@
 =#
 const emptyStrings = String[]
 
-function printTranslations(num, digits, start=1, words=String[])
+function printTranslations(dict, num, digits, start=1, words=String[])
     if start > length(digits)
        return println(num, ": ", join(words, " "))
     end
@@ -17,12 +17,12 @@ function printTranslations(num, digits, start=1, words=String[])
         n = n * 10 + nthDigit(digits, i)
         for word in get(dict, n, emptyStrings)
             foundWord = true
-            printTranslations(num, digits, i + 1, [words; word])
+            printTranslations(num, digits, i + 1, push!(words, word))
         end
     end
     if !foundWord &&
         !(!isempty(words) && length(words[end]) == 1 && isdigit(words[end][begin]))
-        printTranslations(num, digits, start + 1, [words; string(nthDigit(digits, start))])
+        printTranslations(dict, num, digits, start + 1, [words; string(nthDigit(digits, start))])
     end
 end
 
@@ -41,15 +41,15 @@ end
 function charToDigit(ch::Char)::UInt
     ch = lowercase(ch)
     ch == 'e' && return 0
-    ch in ['j', 'n', 'q'] && return 1
-    ch in ['r', 'w', 'x'] && return 2
-    ch in ['d', 's', 'y'] && return 3
-    ch in ['f', 't'] && return 4
-    ch in ['a', 'm'] && return 5
-    ch in ['c', 'i', 'v'] && return 6
-    ch in ['b', 'k', 'u'] && return 7
-    ch in ['l', 'o', 'p'] && return 8
-    ch in ['g', 'h', 'z'] && return 9
+    ch in ('j', 'n', 'q') && return 1
+    ch in ('r', 'w', 'x') && return 2
+    ch in ('d', 's', 'y') && return 3
+    ch in ('f', 't') && return 4
+    ch in ('a', 'm') && return 5
+    ch in ('c', 'i', 'v') && return 6
+    ch in ('b', 'k', 'u') && return 7
+    ch in ('l', 'o', 'p') && return 8
+    ch in ('g', 'h', 'z') && return 9
     throw(DomainError(ch, "Not a letter"))
 end
 
@@ -70,6 +70,6 @@ end
 
 open(length(ARGS) < 2 ? "tests/numbers.txt" : ARGS[begin+1]) do file
     for num in eachline(file)
-        printTranslations(num, filter(isdigit, num))
+        printTranslations(dict, num, filter(isdigit, num))
     end
 end
