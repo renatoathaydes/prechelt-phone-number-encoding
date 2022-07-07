@@ -26,7 +26,7 @@ javac src/java/util/*.java -d build/util
 echo "Compiling Lisp sources"
 cd src/lisp/
 sbcl --non-interactive --load build.lisp
-cp lisp-phone-encoder ../../
+mv lisp-phone-encoder ../../
 cd ../..
 
 echo "Compiling Rust sources"
@@ -93,4 +93,4 @@ echo "Generating plot"
 ./plotter "$CSV_OUT"
 
 echo "Cleaning up"
-rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner ./lisp-phone-encoder" > /dev/null 2>&1 || true
+rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner ./lisp-phone-encoder ./phone_encoder_c ./plotter" > /dev/null 2>&1 || true
