@@ -11,12 +11,11 @@ void wt_init(word_tree_t * word_tree, unsigned int depth) {
 	}
 }
 
-char * wt_clean_word(char * word, int * out_cleaned_length) {
-	size_t word_length = strlen(word);
+char * wt_clean_word(char * word, int * out_cleaned_length, int word_length) {
 	char * clean_word = malloc((word_length) + 1 * sizeof(char));
 
 	int j = 0;
-	for (int i = 0; i < word_length; i++) {
+	for (int i = 0; word[i] != '\0'; i++) {
 		char letter = word[i];
 		if (letter > 64 && letter < 91) clean_word[j++] = letter ^ 0x20;
 		else if (letter > 96 && letter < 123) clean_word[j++] = word[i];
@@ -85,11 +84,9 @@ void wt_add_rec(word_tree_t * word_tree, char * word, char * cleaned_word, unsig
 		letter_pos + 1, cleaned_length);
 }
 
-void wt_add(word_tree_t * word_tree, char * word) {
-	int cleaned_length;
-	char * cleaned_word = wt_clean_word(word, &cleaned_length);
-	wt_add_rec(word_tree, word, cleaned_word, 0, cleaned_length);
-	free(cleaned_word);
+void wt_add(word_tree_t * word_tree, char * word, char * clean, int clean_length) {
+	wt_add_rec(word_tree, word, clean, 0, clean_length);
+	free(clean);
 }
 
 void wt_find_words_rec(word_tree_t * word_tree, vector_t * phone_number, unsigned int digit_pos, 
