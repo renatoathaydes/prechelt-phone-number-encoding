@@ -14,12 +14,13 @@ struct DataPoint {
 }
 
 const OUT_FILE_NAME: &str = "benchmark-result.svg";
-const COLORS: [&RGBColor; 5] = [
+const COLORS: [&RGBColor; 6] = [
     &BLUE,
     &RGBColor(255, 165, 0),
     &RGBColor(0, 100, 0),
     &RED,
     &MAGENTA,
+    &RGBColor(121, 212, 253),
 ];
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
