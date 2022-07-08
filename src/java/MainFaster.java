@@ -44,13 +44,13 @@ public class MainFaster {
 	 * @return list of phone numbers
 	 */
 	private static void loadPhoneNumbers(String fileName, PhoneEncoder pe) {
-		BufferedReader file = null;
-
 		try {
-			file = new BufferedReader(new FileReader(fileName));
-			while (file.ready()) {
-				pe.encode(file.readLine().trim());
-			}
+			BufferedReader file = new BufferedReader(new FileReader(fileName));
+			file.lines()
+				.map(line -> line.trim())
+				.filter(line -> !line.isEmpty())
+				.forEach(number -> pe.encode(number));
+			file.close();
 		} catch (FileNotFoundException e) {
 			System.out.println("File not found: " + fileName);
 		} catch (IOException e) {
@@ -179,10 +179,11 @@ public class MainFaster {
 	 */
 	private static class PhoneEncoder {
 
+		private static final Pattern REGEX = Pattern.compile("[^a-zA-Z]");
+
 		private WordTree dict;
 		private String phoneNumberStr;
 		private List<Integer> phoneNumber;
-		private int maxWordLength;
 		private int minWordLength;
 		private SolutionConsumer consumer;
 
@@ -270,20 +271,19 @@ public class MainFaster {
 		private void loadDict(String dictionaryFileName) {
 			BufferedReader file = null;
 			dict = new WordTree(0);
-			maxWordLength = 0;
 			minWordLength = Integer.MAX_VALUE;
 
 			try {
 				file = new BufferedReader(new FileReader(dictionaryFileName));
 				String line;
+				String clean;
 
 				while (file.ready()) {
 					line = file.readLine().trim();
-					dict.add(line);
-					if (line.length() > maxWordLength)
-						maxWordLength = line.length();
-					if (line.length() < minWordLength)
-						minWordLength = line.length();
+					clean = REGEX.matcher(line).replaceAll("").toLowerCase();
+					dict.add(line, clean);
+					if (clean.length() < minWordLength)
+						minWordLength = clean.length();
 				}
 			} catch (FileNotFoundException e) {
 				System.out.println("File not found: " + dictionaryFileName);
@@ -318,8 +318,6 @@ public class MainFaster {
 		 */
 		private static class WordTree {
 
-			private static final Pattern REGEX = Pattern.compile("[^a-zA-Z]");
-
 			private int depth;
 			private WordTree[] children;
 			private List<String> words;
@@ -339,9 +337,10 @@ public class MainFaster {
 			 * Adds a word to the tree
 			 * 
 			 * @param word to add
+			 * @param clean word without double quotes and in lower case
 			 */
-			public void add(String word) {
-				add(word, REGEX.matcher(word).replaceAll("").toLowerCase(), 0);
+			public void add(String word, String clean) {
+				add(word, clean, 0);
 			}
 
 			/**
