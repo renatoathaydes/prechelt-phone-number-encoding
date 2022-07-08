@@ -65,5 +65,8 @@ void * vector_get(vector_t * vector, unsigned int index) {
 }
 
 void vector_free(vector_t * vector) {
+	for (int i = 0; i < vector->length; i++) {
+		free(vector->array[i]); 
+	} 
 	free(vector->array);
 }

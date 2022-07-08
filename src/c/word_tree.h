@@ -7,5 +7,6 @@ typedef struct word_tree_t {
 } word_tree_t;
 
 void wt_init(word_tree_t *, unsigned int);
-void wt_add(word_tree_t *, char *);
+void wt_add(word_tree_t *, char *, char *, int);
+char * wt_clean_word(char *, int *, int);
 void wt_find_words(word_tree_t *, vector_t *, unsigned int, vector_t **, unsigned int);
