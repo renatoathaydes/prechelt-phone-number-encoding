@@ -16,6 +16,7 @@ COMMANDS=(
   "./lisp-phone-encoder"                          # Common Lisp (Renato Athaydes)
   "./rust"                                        # Rust (Renato Athaydes)
   "./phone_encoder_c"                             # C (@davidaf3)
+  "./encoder_zig"                                 # Zig
 )
 
 echo "Compiling Java sources"
@@ -38,6 +39,9 @@ cd ../../..
 echo "Compiling C sources"
 cd src/c && gcc -O3 phone_encoder.c word_tree.c vector.c -o ../../phone_encoder_c
 cd ../..
+
+echo "Compiling Zig sources"
+zig build-exe src/zig/encoder_zig.zig -O ReleaseFast
 
 echo "Generating inputs"
 PRINT_INPUTS=(phones_1000.txt phones_100_000.txt phones_500_000.txt phones_1_000_000_with_empty.txt)
@@ -93,4 +97,4 @@ echo "Generating plot"
 ./plotter "$CSV_OUT"
 
 echo "Cleaning up"
-rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner ./lisp-phone-encoder ./phone_encoder_c ./plotter" > /dev/null 2>&1 || true
+rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner ./lisp-phone-encoder ./phone_encoder_c ./plotter ./encoder_zig" > /dev/null 2>&1 || true

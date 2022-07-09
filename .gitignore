@@ -1,6 +1,7 @@
 out/
 build/
 target/
+zig-cache/
 *.txt
 *.fasl
 !dictionary.txt
