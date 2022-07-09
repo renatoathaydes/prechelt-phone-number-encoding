@@ -19,17 +19,18 @@ const allocator: Allocator = init: {
 };
 
 fn charToDigit(char: u8) u4 {
-    return switch (char) {
-        'e', 'E' => 0,
-        'j', 'J', 'n', 'N', 'q', 'Q' => 1,
-        'r', 'R', 'w', 'W', 'x', 'X' => 2,
-        'd', 'D', 's', 'S', 'y', 'Y' => 3,
-        'f', 'F', 't', 'T' => 4,
-        'a', 'A', 'm', 'M' => 5,
-        'c', 'C', 'i', 'I', 'v', 'V' => 6,
-        'b', 'B', 'k', 'K', 'u', 'U' => 7,
-        'l', 'L', 'o', 'O', 'p', 'P' => 8,
-        'g', 'G', 'h', 'H', 'z', 'Z' => 9,
+    const c = if (std.ascii.isUpper(char)) char + 32 else char;
+    return switch (c) {
+        'e' => 0,
+        'j', 'n', 'q' => 1,
+        'r', 'w', 'x' => 2,
+        'd', 's', 'y' => 3,
+        'f', 't' => 4,
+        'a', 'm' => 5,
+        'c', 'i', 'v' => 6,
+        'b', 'k', 'u' => 7,
+        'l', 'o', 'p' => 8,
+        'g', 'h', 'z' => 9,
         else => unreachable,
     };
 }
