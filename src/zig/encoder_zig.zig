@@ -117,11 +117,7 @@ fn findTranslations(handler: handlerFn, dictionary: *const Map, phone_num: []con
     // if word not found at this level, try to substitute with a digit and recurse
     const word_count = words.items.len;
     if (!found_word and (word_count == 0 or !isNumeric(words.items[word_count - 1]))) {
-        // TODO no need to allocate a word for the 0-9 digits! Use static strings.
-        const digit = try allocator.alloc(u8, 1);
-        defer allocator.free(digit);
-        digit[0] = digits[start];
-        try words.append(digit);
+        try words.append(digits[start..start+1]);
         try findTranslations(handler, dictionary, phone_num, digits, start + 1, words);
         _ = words.pop();
     }
@@ -146,8 +142,7 @@ fn loadDictionary(dict: []const u8, size: usize) !Map {
     return result;
 }
 
-fn toDigits(word: []const u8) ![]const u8 {
-    var result = try allocator.alloc(u8, word.len);
+fn toDigits(result: []u8, word: []const u8) []const u8 {
     var i = @as(usize, 0);
     for (word) |char| {
         if (std.ascii.isDigit(char)) {
@@ -179,17 +174,17 @@ pub fn main() !void {
 
     // read phone numbers file, handling solutions as we find them
     {
-        const max_bytes_per_line = 128;
         var file = try std.fs.cwd().openFile(nums, .{});
         defer file.close();
         var reader = std.io.bufferedReader(file.reader()).reader();
-        while (try reader.readUntilDelimiterOrEofAlloc(allocator, '\n', max_bytes_per_line)) |phone_number| {
-            defer allocator.free(phone_number);
+        var words = try List.initCapacity(allocator, 12);
+        defer words.deinit();
+        // max input is 50-digit long but may contain accentuation
+        var line_buf: [64]u8 = undefined;
+        var digit_buf: [50]u8 = undefined;
+        while (try reader.readUntilDelimiterOrEof(&line_buf, '\n')) |phone_number| {
             if (phone_number.len > 0) {
-                var words = try List.initCapacity(allocator, 12);
-                defer words.deinit();
-                const digits = try toDigits(phone_number);
-                defer allocator.free(digits);
+                const digits = toDigits(&digit_buf, phone_number);
                 try findTranslations(handler_fn, &dictionary, phone_number, digits, 0, &words);
             }
         }
