@@ -10,14 +10,6 @@ const ArgError = error{
 
 const expectEqual = std.testing.expectEqual;
 
-const allocator: Allocator = init: {
-    // var buffer: [10 * 1000 * 1024]u8 = undefined;
-    // var fba = std.heap.FixedBufferAllocator.init(&buffer);
-    // break :init fba.allocator();
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    break :init gpa.allocator();
-};
-
 fn charToDigit(char: u8) u4 {
     const c = if (std.ascii.isUpper(char)) char + 32 else char;
     return switch (c) {
@@ -123,7 +115,7 @@ fn findTranslations(handler: handlerFn, dictionary: *const Map, phone_num: []con
     }
 }
 
-fn loadDictionary(dict: []const u8, size: usize) !Map {
+fn loadDictionary(allocator: Allocator, dict: []const u8, size: usize) !Map {
     _ = size; // pre-allocate Map space?
     var result = Map.init(allocator);
     const max_bytes_per_line: usize = 1024;
@@ -134,7 +126,7 @@ fn loadDictionary(dict: []const u8, size: usize) !Map {
         if (line.len > 0) {
             var entry = try result.getOrPut(wordToNumber(line));
             if (!entry.found_existing) {
-                entry.value_ptr.* = try List.initCapacity(allocator, 12);
+                entry.value_ptr.* = try List.initCapacity(allocator, 4);
             }
             try entry.value_ptr.*.append(line);
         }
@@ -154,6 +146,11 @@ fn toDigits(result: []u8, word: []const u8) []const u8 {
 }
 
 pub fn main() !void {
+    var allocator = init: {
+        var alloc = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+        break :init alloc.allocator();
+    };
+
     var args = try std.process.argsWithAllocator(allocator);
     defer args.deinit();
 
@@ -170,7 +167,7 @@ pub fn main() !void {
     else
         return error.InvalidPrintOrCountArg;
 
-    const dictionary = try loadDictionary(dict, 100);
+    const dictionary = try loadDictionary(allocator, dict, 100);
 
     // read phone numbers file, handling solutions as we find them
     {
