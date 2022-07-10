@@ -1,7 +1,7 @@
 const std = @import("std");
 
 const List = std.ArrayList([]const u8);
-const Map = std.AutoHashMap([2]u128, List);
+const Map = std.AutoHashMap([50]u4, List);
 const Allocator = std.mem.Allocator;
 
 const ArgError = error{
@@ -35,31 +35,36 @@ fn charToDigit(char: u8) u4 {
     };
 }
 
-fn wordToNumber(word: []const u8) [2]u128 {
-    var num: [2]u128 = [_]u128{ 1, 1 };
+fn wordToNumber(word: []const u8) [50]u4 {
+    var num: [50]u4 = [_]u4{0} ** 50;
     var index = @as(u8, 0);
-    var num_index = @as(usize, 0);
     for (word) |char| {
         if (std.ascii.isAlpha(char)) {
-            num[num_index] = num[num_index] * 10 + charToDigit(char);
+            num[index] = charToDigit(char);
             index += 1;
-            if (index == 38) {
-                num_index = 1;
-            }
         }
     }
     return num;
 }
 
 test "wordToNumber" {
-    try expectEqual([_]u128{ 1, 1 }, wordToNumber(""));
-    try expectEqual([_]u128{ 15, 1 }, wordToNumber("a"));
-    try expectEqual([_]u128{ 10123456789, 1 }, wordToNumber("ejrdfacblg"));
-    try expectEqual([_]u128{ 101234567890123456789987654321001234567, 1890123456789 }, wordToNumber("ejrdfacblgEJRDFACBLGzpuvmtswneENWSTMIKOHeqxytmvupz"));
+    var expected: [50]u4 = [_]u4{0} ** 50;
+    try expectEqual(expected, wordToNumber(""));
+    expected[0] = 5;
+    try expectEqual(expected, wordToNumber("a"));
+    var i = @as(u8, 0);
+    while (i < 10) : (i += 1) {
+        expected[i] = @intCast(u4, i);
+    }
+    try expectEqual(expected, wordToNumber("ejrdfacblg"));
+    while (i < 50) : (i += 1) {
+        expected[i] = @intCast(u4, i % 10);
+    }
+    try expectEqual(expected, wordToNumber("ejrdfacblgEJRDFACBLGenwstmikohEQXYTMVUPZejrdfacblg"));
 }
 
-fn nthDigit(digits: []const u8, index: usize) u8 {
-    return digits[index] - '0';
+fn nthDigit(digits: []const u8, index: usize) u4 {
+    return @intCast(u4, digits[index] - '0');
 }
 
 const handlerFn = fn (phone_num: []const u8, words: *const List) usize;
@@ -100,10 +105,9 @@ fn findTranslations(handler: handlerFn, dictionary: *const Map, phone_num: []con
     // find all translations recursively
     {
         var index = start;
-        var num: [2]u128 = [_]u128{ 1, 1 };
+        var num: [50]u4 = [_]u4{0} ** 50;
         while (index < digits.len) : (index += 1) {
-            const num_index = if (index - start >= 38) @as(usize, 1) else @as(usize, 0);
-            num[num_index] = num[num_index] * 10 + nthDigit(digits, index);
+            num[index - start] = nthDigit(digits, index);
             if (dictionary.get(num)) |dict_words| {
                 found_word = true;
                 for (dict_words.items) |word| {
