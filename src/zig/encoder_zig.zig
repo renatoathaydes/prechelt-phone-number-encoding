@@ -56,7 +56,11 @@ fn nthDigit(digits: []const u8, index: usize) u8 {
 
 const handlerFn = fn (phone_num: []const u8, words: *const List) usize;
 
-const stdout = std.io.getStdOut();
+var stdout = init: {
+    const out = std.io.getStdOut();
+    var bw = std.io.bufferedWriter(out.writer());
+    break :init bw;
+};
 
 fn printResult(phone_num: []const u8, words: *const List) usize {
     const writer = stdout.writer();
@@ -192,4 +196,6 @@ pub fn main() !void {
         const count = countResult("", &empty);
         try stdout.writer().print("{d}\n", .{count});
     }
+
+    try stdout.flush();
 }
