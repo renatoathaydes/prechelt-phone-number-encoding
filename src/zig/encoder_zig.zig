@@ -33,9 +33,9 @@ fn wordToNumber(word: []const u8) [2]u128 {
     var num_index = @as(usize, 0);
     for (word) |char| {
         if (std.ascii.isAlpha(char)) {
-            num[num_index] = num[num_index] * 10 + charToDigit(char);
+            num[num_index] = (num[num_index] << 4) + charToDigit(char);
             index += 1;
-            if (index == 38) {
+            if (index == 31) {
                 num_index = 1;
             }
         }
@@ -45,9 +45,9 @@ fn wordToNumber(word: []const u8) [2]u128 {
 
 test "wordToNumber" {
     try expectEqual([_]u128{ 1, 1 }, wordToNumber(""));
-    try expectEqual([_]u128{ 15, 1 }, wordToNumber("a"));
-    try expectEqual([_]u128{ 10123456789, 1 }, wordToNumber("ejrdfacblg"));
-    try expectEqual([_]u128{ 101234567890123456789987654321001234567, 1890123456789 }, wordToNumber("ejrdfacblgEJRDFACBLGzpuvmtswneENWSTMIKOHeqxytmvupz"));
+    try expectEqual([_]u128{ 21, 1 }, wordToNumber("a"));
+    try expectEqual([_]u128{ 1104398346121, 1 }, wordToNumber("ejrdfacblg"));
+    try expectEqual([_]u128{ 21362170812246019442013737426165637376, 80930867367913000888201 }, wordToNumber("ejrdfacblgEJRDFACBLGzpuvmtswneENWSTMIKOHeqxytmvupz"));
 }
 
 fn nthDigit(digits: []const u8, index: usize) u8 {
@@ -98,8 +98,8 @@ fn findTranslations(handler: handlerFn, dictionary: *const Map, phone_num: []con
         var index = start;
         var num: [2]u128 = [_]u128{ 1, 1 };
         while (index < digits.len) : (index += 1) {
-            const num_index = if (index - start >= 38) @as(usize, 1) else @as(usize, 0);
-            num[num_index] = num[num_index] * 10 + nthDigit(digits, index);
+            const num_index = if (index - start >= 31) @as(usize, 1) else @as(usize, 0);
+            num[num_index] = (num[num_index] << 4) + nthDigit(digits, index);
             if (dictionary.get(num)) |dict_words| {
                 found_word = true;
                 for (dict_words.items) |word| {
