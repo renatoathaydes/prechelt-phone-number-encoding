@@ -95,7 +95,7 @@ public class MainFaster {
 		 * @param solutionMatrix irregular matrix containing the encodings
 		 */
 		public void onSolution(String phoneNumber, List<List<String>> solutionMatrix) {
-			printSolutionRec(0, new ArrayList<>(), solutionMatrix, phoneNumber);
+			printSolutionRec(0, new String[solutionMatrix.size()], solutionMatrix, phoneNumber);
 		}
 
 		/**
@@ -108,7 +108,7 @@ public class MainFaster {
 		 *                       number
 		 * @param solutionsList  list of solutions
 		 */
-		private void printSolutionRec(int i, List<String> partSolution, 
+		private void printSolutionRec(int i, String[] partSolution, 
 			List<List<String>> solutionMatrix, String phoneNumber) {
 			if (i == solutionMatrix.size()) {
 				try {
@@ -121,9 +121,8 @@ public class MainFaster {
 			}
 
 			for (String word : solutionMatrix.get(i)) {
-				partSolution.add(word);
+				partSolution[i] = word;
 				printSolutionRec(i + 1, partSolution, solutionMatrix, phoneNumber);
-				partSolution.remove(partSolution.size() - 1);
 			}
 		}
 
@@ -152,11 +151,12 @@ public class MainFaster {
 		 * @param solutionMatrix irregular matrix containing the encodings
 		 */
 		public void onSolution(String phoneNumber, List<List<String>> solutionMatrix) {
-			int count = 1;
+			/*int count = 1;
 			for (int i = 0; i < solutionMatrix.size(); i++) {
 				count *= solutionMatrix.get(i).size();
 			}
-			solutionCount += count;
+			solutionCount += count;*/
+			countSolutionRec(0, new String[solutionMatrix.size()], solutionMatrix, phoneNumber);
 		}
 
 		/**
@@ -168,6 +168,19 @@ public class MainFaster {
 				printer.write('\n');
 			} catch (IOException e) {
 				throw new RuntimeException( e );
+			}
+		}
+
+		private void countSolutionRec(int i, String[] partSolution, 
+			List<List<String>> solutionMatrix, String phoneNumber) {
+			if (i == solutionMatrix.size()) {
+				solutionCount++;
+				return;
+			}
+
+			for (String word : solutionMatrix.get(i)) {
+				partSolution[i] = word;
+				countSolutionRec(i + 1, partSolution, solutionMatrix, phoneNumber);
 			}
 		}
 	}
@@ -275,16 +288,16 @@ public class MainFaster {
 
 			try {
 				file = new BufferedReader(new FileReader(dictionaryFileName));
-				String line;
-				String clean;
-
-				while (file.ready()) {
-					line = file.readLine().trim();
-					clean = REGEX.matcher(line).replaceAll("").toLowerCase();
-					dict.add(line, clean);
-					if (clean.length() < minWordLength)
-						minWordLength = clean.length();
-				}
+				file.lines()
+					.map(line -> line.trim())
+					.filter(line -> !line.isEmpty())
+					.forEach(word -> {
+						String clean = REGEX.matcher(word).replaceAll("").toLowerCase();
+						dict.add(word, clean);
+						if (clean.length() < minWordLength)
+							minWordLength = clean.length();
+					});
+				file.close();
 			} catch (FileNotFoundException e) {
 				System.out.println("File not found: " + dictionaryFileName);
 			} catch (IOException e) {

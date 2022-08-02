@@ -15,7 +15,7 @@ func NewSolutionPrinter(bufSize int) *SolutionPrinter {
 }
 
 func (sp *SolutionPrinter) OnSolution(phoneNumber string, solutionMatrix [][]string) {
-	sp.printSolutionRec(0, make([]string, 0, 10), solutionMatrix, phoneNumber)
+	sp.printSolutionRec(0, make([]string, len(solutionMatrix)), solutionMatrix, phoneNumber)
 }
 
 func (sp *SolutionPrinter) printSolutionRec(i int, partSolution []string, solutionMatrix [][]string, phoneNumber string) {
@@ -32,9 +32,8 @@ func (sp *SolutionPrinter) printSolutionRec(i int, partSolution []string, soluti
 	}
 
 	for _, word := range solutionMatrix[i] {
-		partSolution = append(partSolution, word)
+		partSolution[i] = word;
 		sp.printSolutionRec(i + 1, partSolution, solutionMatrix, phoneNumber)
-		partSolution = partSolution[:len(partSolution) - 1]
 	}
 }
 

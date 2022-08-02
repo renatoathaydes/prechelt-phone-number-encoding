@@ -15,11 +15,19 @@ func NewSolutionCounter(output *int64) *SolutionCounter {
 }
 
 func (sc *SolutionCounter) OnSolution(phoneNumber string, solutionMatrix [][]string) {
-	var newSolutions int64 = 1
-	for _, row := range solutionMatrix {
-		newSolutions *= int64(len(row))
+	sc.countSolutionRec(0, make([]string, len(solutionMatrix)), solutionMatrix)
+}
+
+func (sc *SolutionCounter) countSolutionRec(i int, partSolution []string, solutionMatrix [][]string) {
+	if i == len(solutionMatrix) {
+		sc.count++
+		return
 	}
-	sc.count += newSolutions
+
+	for _, word := range solutionMatrix[i] {
+		partSolution[i] = word
+		sc.countSolutionRec(i + 1, partSolution, solutionMatrix)
+	}
 }
 
 func (sc *SolutionCounter) OnEnd() {

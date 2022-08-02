@@ -115,14 +115,14 @@ void load_phone_number(char * phone_number_str, vector_t * phone_number) {
 	}
 }
 
-void print_word_list(vector_t * word_list) {
+void print_word_list(char ** word_list, int length) {
 	print_buffer_end = stpcpy(print_buffer_end, current_number);
 	*(print_buffer_end++) = ':';
 	*(print_buffer_end++) = ' ';
-	print_buffer_end = stpcpy(print_buffer_end, (char *) vector_get(word_list, 0));
-	for (int i = 1; i < word_list->length; i++) {
+	print_buffer_end = stpcpy(print_buffer_end, word_list[0]);
+	for (int i = 1; i < length; i++) {
 		*(print_buffer_end++) = ' ';
-		print_buffer_end = stpcpy(print_buffer_end, (char *) vector_get(word_list, i));
+		print_buffer_end = stpcpy(print_buffer_end, word_list[i]);
 	}
 	*(print_buffer_end++) = '\n';
 	if (print_buffer_end - print_buffer > 3900) {
@@ -132,34 +132,47 @@ void print_word_list(vector_t * word_list) {
 	}
 }
 
-void print_solutions_rec(unsigned int i, vector_t * part_solution, vector_t * solution_matrix) {
+void print_solutions_rec(unsigned int i, char ** part_solution, vector_t * solution_matrix) {
 	if (i == solution_matrix->length) {
-		print_word_list(part_solution);
+		print_word_list(part_solution, solution_matrix->length);
 		return;
 	}
 
 	vector_t * row = (vector_t *) vector_get(solution_matrix, i);
 	for (int j = 0; j < row->length; j++) {
-		vector_push(part_solution, (char *) vector_get(row, j));
+		part_solution[i] = (char *) vector_get(row, j);
 		print_solutions_rec(i + 1, part_solution, solution_matrix);
-		vector_pop(part_solution);
 	}
 }
 
 void print_solutions(vector_t * solution_matrix) {
-	vector_t * part_solution = malloc(sizeof(vector_t));
-	vector_init(part_solution, sizeof(char *), 10);
-	print_solutions_rec(0, part_solution, solution_matrix);
-	vector_free(part_solution);
+	char ** part_solution = malloc(sizeof(char *) * solution_matrix->length);
+	print_solutions_rec(0, part_solution, solution_matrix);;
 	free(part_solution);
 }
 
+void count_solutions_rec(unsigned int i, char ** part_solution, vector_t * solution_matrix) {
+	if (i == solution_matrix->length) {
+		solution_count++;
+		return;
+	}
+
+	vector_t * row = (vector_t *) vector_get(solution_matrix, i);
+	for (int j = 0; j < row->length; j++) {
+		part_solution[i] = (char *) vector_get(row, j);
+		count_solutions_rec(i + 1, part_solution, solution_matrix);
+	}
+}
+
 void count_solutions(vector_t * solution_matrix) {
-	int count = 1;
+	/*int count = 1;
 	for (int i = 0; i < solution_matrix->length; i++) {
 		count *= ((vector_t *) vector_get(solution_matrix, i))->length;
 	}
-	solution_count += count;
+	solution_count += count;*/
+	char ** part_solution = malloc(sizeof(char *) * solution_matrix->length);
+	count_solutions_rec(0, part_solution, solution_matrix);
+	free(part_solution);
 }
 
 void solve_rec(vector_t * phone_number, unsigned int digit_pos, vector_t * part_solution,
