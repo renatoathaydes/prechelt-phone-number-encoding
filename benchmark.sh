@@ -16,7 +16,8 @@ COMMANDS=(
   "./lisp-phone-encoder"                          # Common Lisp (Renato Athaydes)
   "./rust"                                        # Rust (Renato Athaydes)
   "./phone_encoder_c"                             # C (@davidaf3)
-  "./phone_encoder_go"                             # Go (@davidaf3)
+  "./phone_encoder_go"                            # Go (@davidaf3)
+  "./encoder_zig"                                 # Zig
 )
 
 echo "Compiling Java sources"
@@ -43,6 +44,9 @@ cd ../..
 echo "Compiling Go sources"
 cd src/go && go build -o ../../phone_encoder_go
 cd ../..
+
+echo "Compiling Zig sources"
+zig build-exe src/zig/encoder_zig.zig -O ReleaseFast
 
 echo "Generating inputs"
 PRINT_INPUTS=(phones_1000.txt phones_100_000.txt phones_500_000.txt phones_1_000_000_with_empty.txt)
