@@ -102,4 +102,8 @@ echo "Generating plot"
 ./plotter "$CSV_OUT"
 
 echo "Cleaning up"
+<<<<<<< HEAD
 rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner ./lisp-phone-encoder ./phone_encoder_c ./phone_encoder_go ./plotter" > /dev/null 2>&1 || true
+=======
+rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner ./lisp-phone-encoder ./phone_encoder_c ./plotter ./encoder_zig" > /dev/null 2>&1 || true
+>>>>>>> upstream/davidaf3
