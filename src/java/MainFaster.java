@@ -44,13 +44,13 @@ public class MainFaster {
 	 * @return list of phone numbers
 	 */
 	private static void loadPhoneNumbers(String fileName, PhoneEncoder pe) {
-		BufferedReader file = null;
-
 		try {
-			file = new BufferedReader(new FileReader(fileName));
-			while (file.ready()) {
-				pe.encode(file.readLine().trim());
-			}
+			BufferedReader file = new BufferedReader(new FileReader(fileName));
+			file.lines()
+				.map(line -> line.trim())
+				.filter(line -> !line.isEmpty())
+				.forEach(number -> pe.encode(number));
+			file.close();
 		} catch (FileNotFoundException e) {
 			System.out.println("File not found: " + fileName);
 		} catch (IOException e) {
@@ -95,7 +95,7 @@ public class MainFaster {
 		 * @param solutionMatrix irregular matrix containing the encodings
 		 */
 		public void onSolution(String phoneNumber, List<List<String>> solutionMatrix) {
-			printSolutionRec(0, new ArrayList<>(), solutionMatrix, phoneNumber);
+			printSolutionRec(0, new String[solutionMatrix.size()], solutionMatrix, phoneNumber);
 		}
 
 		/**
@@ -108,7 +108,7 @@ public class MainFaster {
 		 *                       number
 		 * @param solutionsList  list of solutions
 		 */
-		private void printSolutionRec(int i, List<String> partSolution, 
+		private void printSolutionRec(int i, String[] partSolution, 
 			List<List<String>> solutionMatrix, String phoneNumber) {
 			if (i == solutionMatrix.size()) {
 				try {
@@ -121,9 +121,8 @@ public class MainFaster {
 			}
 
 			for (String word : solutionMatrix.get(i)) {
-				partSolution.add(word);
+				partSolution[i] = word;
 				printSolutionRec(i + 1, partSolution, solutionMatrix, phoneNumber);
-				partSolution.remove(partSolution.size() - 1);
 			}
 		}
 
@@ -152,11 +151,12 @@ public class MainFaster {
 		 * @param solutionMatrix irregular matrix containing the encodings
 		 */
 		public void onSolution(String phoneNumber, List<List<String>> solutionMatrix) {
-			int count = 1;
+			/*int count = 1;
 			for (int i = 0; i < solutionMatrix.size(); i++) {
 				count *= solutionMatrix.get(i).size();
 			}
-			solutionCount += count;
+			solutionCount += count;*/
+			countSolutionRec(0, new String[solutionMatrix.size()], solutionMatrix, phoneNumber);
 		}
 
 		/**
@@ -170,6 +170,19 @@ public class MainFaster {
 				throw new RuntimeException( e );
 			}
 		}
+
+		private void countSolutionRec(int i, String[] partSolution, 
+			List<List<String>> solutionMatrix, String phoneNumber) {
+			if (i == solutionMatrix.size()) {
+				solutionCount++;
+				return;
+			}
+
+			for (String word : solutionMatrix.get(i)) {
+				partSolution[i] = word;
+				countSolutionRec(i + 1, partSolution, solutionMatrix, phoneNumber);
+			}
+		}
 	}
 
 	/**
@@ -179,10 +192,11 @@ public class MainFaster {
 	 */
 	private static class PhoneEncoder {
 
+		private static final Pattern REGEX = Pattern.compile("[^a-zA-Z]");
+
 		private WordTree dict;
 		private String phoneNumberStr;
 		private List<Integer> phoneNumber;
-		private int maxWordLength;
 		private int minWordLength;
 		private SolutionConsumer consumer;
 
@@ -270,21 +284,20 @@ public class MainFaster {
 		private void loadDict(String dictionaryFileName) {
 			BufferedReader file = null;
 			dict = new WordTree(0);
-			maxWordLength = 0;
 			minWordLength = Integer.MAX_VALUE;
 
 			try {
 				file = new BufferedReader(new FileReader(dictionaryFileName));
-				String line;
-
-				while (file.ready()) {
-					line = file.readLine().trim();
-					dict.add(line);
-					if (line.length() > maxWordLength)
-						maxWordLength = line.length();
-					if (line.length() < minWordLength)
-						minWordLength = line.length();
-				}
+				file.lines()
+					.map(line -> line.trim())
+					.filter(line -> !line.isEmpty())
+					.forEach(word -> {
+						String clean = REGEX.matcher(word).replaceAll("").toLowerCase();
+						dict.add(word, clean);
+						if (clean.length() < minWordLength)
+							minWordLength = clean.length();
+					});
+				file.close();
 			} catch (FileNotFoundException e) {
 				System.out.println("File not found: " + dictionaryFileName);
 			} catch (IOException e) {
@@ -318,8 +331,6 @@ public class MainFaster {
 		 */
 		private static class WordTree {
 
-			private static final Pattern REGEX = Pattern.compile("[^a-zA-Z]");
-
 			private int depth;
 			private WordTree[] children;
 			private List<String> words;
@@ -339,9 +350,10 @@ public class MainFaster {
 			 * Adds a word to the tree
 			 * 
 			 * @param word to add
+			 * @param clean word without double quotes and in lower case
 			 */
-			public void add(String word) {
-				add(word, REGEX.matcher(word).replaceAll("").toLowerCase(), 0);
+			public void add(String word, String clean) {
+				add(word, clean, 0);
 			}
 
 			/**

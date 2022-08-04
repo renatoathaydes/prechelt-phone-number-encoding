@@ -16,6 +16,7 @@ COMMANDS=(
   "./lisp-phone-encoder"                          # Common Lisp (Renato Athaydes)
   "./rust"                                        # Rust (Renato Athaydes)
   "./phone_encoder_c"                             # C (@davidaf3)
+  "./phone_encoder_go"                            # Go (@davidaf3)
   "./encoder_zig"                                 # Zig
 )
 
@@ -38,6 +39,10 @@ cd ../../..
 
 echo "Compiling C sources"
 cd src/c && gcc -O3 phone_encoder.c word_tree.c vector.c -o ../../phone_encoder_c
+cd ../..
+
+echo "Compiling Go sources"
+cd src/go && go build -o ../../phone_encoder_go
 cd ../..
 
 echo "Compiling Zig sources"
@@ -97,4 +102,4 @@ echo "Generating plot"
 ./plotter "$CSV_OUT"
 
 echo "Cleaning up"
-rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner ./lisp-phone-encoder ./phone_encoder_c ./plotter ./encoder_zig" > /dev/null 2>&1 || true
+rm "${PRINT_INPUTS[@]} ${COUNT_INPUTS[@]} $CHECK_FILE ./rust ./benchmark_runner ./lisp-phone-encoder ./phone_encoder_c ./phone_encoder_go ./plotter ./encoder_zig" > /dev/null 2>&1 || true
