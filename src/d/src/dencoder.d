@@ -1,8 +1,8 @@
-import std.bigint;
 import std.stdio : write, writeln, File;
 import std.conv : to;
 import std.outbuffer : OutBuffer;
 import std.ascii : isAlpha, isDigit;
+import std.algorithm.iteration : filter;
 
 @safe:
 
@@ -21,30 +21,56 @@ static const letters = [
 
 static const digitByLetter = buildDigitByLetter();
 
-size_t[char] buildDigitByLetter()
+ubyte[char] buildDigitByLetter()
 {
-    size_t[char] result;
+    ubyte[char] result;
     static foreach (i, row; letters)
     {
         static foreach (letter; row)
         {
-            result[letter] = i;
+            result[letter] = cast(ubyte) i;
         }
     }
     return result;
 }
 
-private BigInt wordToNumber(string word)
+struct Key
 {
-    BigInt result = 1;
+    ubyte[] value;
+    size_t hash;
+
+    this(ubyte[] value)
+    {
+        this.value = value;
+        foreach (i, b; value)
+        {
+            hash ^= b << (8 * (i % size_t.sizeof));
+        }
+    }
+
+    void append(ubyte b)
+    {
+        auto i = value.length;
+        value ~= b;
+        hash ^= b << (8 * (i % size_t.sizeof));
+    }
+
+    size_t toHash() const @safe pure nothrow => hash;
+
+    bool opEquals(ref const typeof(this) s) const @safe pure nothrow => this.value == s.value;
+}
+
+private Key wordToNumber(string word)
+{
+    ubyte[] result;
     foreach (c; word)
     {
         if (c.isAlpha)
         {
-            result = result * 10 + digitByLetter[c];
+            result ~= digitByLetter[c];
         }
     }
-    return result;
+    return Key(result);
 }
 
 private bool lastItemIsDigit(string[] words)
@@ -52,7 +78,7 @@ private bool lastItemIsDigit(string[] words)
     return words.length != 0 && words[$ - 1].length == 1 && words[$ - 1][0].isDigit;
 }
 
-void printTranslations(string[][BigInt] dict, ISolutionHandler shandler,
+void printTranslations(string[][Key] dict, ISolutionHandler shandler,
     string number, string digits, string[] words)
 {
     if (digits.length == 0)
@@ -60,32 +86,35 @@ void printTranslations(string[][BigInt] dict, ISolutionHandler shandler,
         shandler.put(number, words);
         return;
     }
+    auto key = Key(new ubyte[0]);
     bool foundWord = false;
-    BigInt n = 1;
     foreach (i, c; digits)
     {
-        n = n * 10 + (c - '0');
-        string[]* foundWords = n in dict;
+        key.append(cast(ubyte)(c - '0'));
+        string[]* foundWords = key in dict;
         if (foundWords !is null)
         {
             foundWord = true;
             foreach (word; *foundWords)
             {
-                dict.printTranslations(shandler, number, digits[i + 1 .. $], words ~ word);
+                words ~= word;
+                dict.printTranslations(shandler, number, digits[i + 1 .. $], words);
+                words = words[0 .. $ - 1];
             }
         }
     }
     if (!foundWord && !words.lastItemIsDigit)
     {
         string digit = [digits[0]];
-        dict.printTranslations(shandler, number, digits[1 .. $], words ~ digit);
+        words ~= digit;
+        dict.printTranslations(shandler, number, digits[1 .. $], words);
     }
 }
 
-string[][BigInt] loadDictionary(string path) @trusted
+string[][Key] loadDictionary(string path) @trusted
 {
     auto file = new File(path);
-    string[][BigInt] result;
+    string[][Key] result;
     foreach (line; file.byLine)
     {
         auto word = line.idup;
@@ -164,11 +193,6 @@ ISolutionHandler createSolutionHandler(string arg)
 
 void main(string[] args) @trusted
 {
-    import std.stdio : File;
-    import std.algorithm.iteration : filter;
-    import std.ascii : isDigit;
-    import std.conv : to;
-
     auto shandler = args.length > 1 ? createSolutionHandler(args[1]) : new Printer;
     auto file = args.length > 2 ? args[2] : "tests/words.txt";
     auto numbers = args.length > 3 ? args[3] : "tests/numbers.txt";
@@ -180,7 +204,7 @@ void main(string[] args) @trusted
         auto num = number.idup;
         string digits = num.filter!(c => c.isDigit)
             .to!string;
-        dict.printTranslations(shandler, num, digits, words[0..0]);
+        dict.printTranslations(shandler, num, digits, words[0 .. 0]);
     }
     shandler.flush();
 }
