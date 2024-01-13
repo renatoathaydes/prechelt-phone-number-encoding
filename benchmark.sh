@@ -14,6 +14,7 @@ COMMANDS=(
   "java $JVM_OPTIONS -cp build/java Main"  # Java
   "sbcl --script src/lisp/main.fasl"       # Common Lisp
   "./rust"                                 # Rust
+  "src/d/dencoder"                         # D
 )
 
 echo "Compiling Java sources"
@@ -31,6 +32,10 @@ cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_en
 cd ../plotter && cargo build --release && cp target/release/plotter ../../../
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
 cd ../../..
+
+echo "Compiling D sources"
+cd src/d && dub build -b release
+cd ../..
 
 echo "Generating inputs"
 PRINT_INPUTS=(phones_1000.txt phones_100_000.txt phones_500_000.txt phones_1_000_000_with_empty.txt)
