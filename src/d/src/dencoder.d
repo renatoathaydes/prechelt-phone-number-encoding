@@ -53,7 +53,7 @@ private bool lastItemIsDigit(string[] words)
 }
 
 void printTranslations(string[][BigInt] dict, ISolutionHandler shandler,
-    string number, string digits, string[] words = [])
+    string number, string digits, string[] words)
 {
     if (digits.length == 0)
     {
@@ -174,12 +174,13 @@ void main(string[] args) @trusted
     auto numbers = args.length > 3 ? args[3] : "tests/numbers.txt";
     auto dict = loadDictionary(file);
     auto numbersFile = File(numbers);
+    auto words = new string[16];
     foreach (number; numbersFile.byLine)
     {
         auto num = number.idup;
         string digits = num.filter!(c => c.isDigit)
             .to!string;
-        dict.printTranslations(shandler, num, digits);
+        dict.printTranslations(shandler, num, digits, words[0..0]);
     }
     shandler.flush();
 }
