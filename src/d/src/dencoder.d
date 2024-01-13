@@ -1,149 +1,185 @@
 import std.bigint;
+import std.stdio : write, writeln, File;
+import std.conv : to;
+import std.outbuffer : OutBuffer;
+import std.ascii : isAlpha, isDigit;
 
 @safe:
 
 static const letters = [
-  ['e', 'E'],
-  ['J', 'N', 'Q', 'j', 'n', 'q'],
-  ['R', 'W', 'X', 'r', 'w', 'x'],
-  ['D', 'S', 'Y', 'd', 's', 'y'],
-  ['F', 'T', 'f', 't'],
-  ['A', 'M', 'a', 'm'],
-  ['C', 'I', 'V', 'c', 'i', 'v'],
-  ['B', 'K', 'U', 'b', 'k', 'u'],
-  ['L', 'O', 'P', 'l', 'o', 'p'],
-  ['G', 'H', 'Z', 'g', 'h', 'z'],
+    ['e', 'E'],
+    ['J', 'N', 'Q', 'j', 'n', 'q'],
+    ['R', 'W', 'X', 'r', 'w', 'x'],
+    ['D', 'S', 'Y', 'd', 's', 'y'],
+    ['F', 'T', 'f', 't'],
+    ['A', 'M', 'a', 'm'],
+    ['C', 'I', 'V', 'c', 'i', 'v'],
+    ['B', 'K', 'U', 'b', 'k', 'u'],
+    ['L', 'O', 'P', 'l', 'o', 'p'],
+    ['G', 'H', 'Z', 'g', 'h', 'z'],
 ];
 
 static const digitByLetter = buildDigitByLetter();
 
 size_t[char] buildDigitByLetter()
 {
-  size_t[char] result;
-  static foreach (i, row; letters)
-  {
-    static foreach (letter; row)
+    size_t[char] result;
+    static foreach (i, row; letters)
     {
-      result[letter] = i;
+        static foreach (letter; row)
+        {
+            result[letter] = i;
+        }
     }
-  }
-  return result;
+    return result;
 }
 
 private BigInt wordToNumber(string word)
 {
-  import std.ascii : isAlphaNum;
-
-  BigInt result = 1;
-  foreach (c; word)
-  {
-    if (c.isAlphaNum)
+    BigInt result = 1;
+    foreach (c; word)
     {
-      result = result * 10 + digitByLetter[c];
+        if (c.isAlpha)
+        {
+            result = result * 10 + digitByLetter[c];
+        }
     }
-  }
-  return result;
+    return result;
 }
 
-private bool lastItemNotDigit(string[] words)
+private bool lastItemIsDigit(string[] words)
 {
-  import std.ascii : isDigit;
-
-  return words.length == 0 || words[$ - 1].length != 1 || !words[$ - 1][0].isDigit;
+    return words.length != 0 && words[$ - 1].length == 1 && words[$ - 1][0].isDigit;
 }
 
-void printTranslations(string[][BigInt] dict, string number, string digits, string[] words = [
-])
+void printTranslations(string[][BigInt] dict, ISolutionHandler shandler,
+    string number, string digits, string[] words = [])
 {
-  import std.stdio : writefln;
-  import std.conv : to;
-
-  if (digits.length == 0)
-  {
-    writefln("%s:%-( %s%)", number, words);
-    return;
-  }
-  bool foundWord = false;
-  BigInt n = 1;
-  foreach (i, c; digits)
-  {
-    n = n * 10 + (c - '0');
-    string[]* foundWords = n in dict;
-    if (foundWords !is null)
+    if (digits.length == 0)
     {
-      foundWord = true;
-      foreach (word; *foundWords)
-      {
-        dict.printTranslations(number, digits[i + 1 .. $], words ~ word);
-      }
+        shandler.put(number, words);
+        return;
     }
-  }
-  if (!foundWord && words.lastItemNotDigit)
-  {
-    string digit = [digits[0]];
-    dict.printTranslations(number, digits[1 .. $], words ~ digit);
-  }
+    bool foundWord = false;
+    BigInt n = 1;
+    foreach (i, c; digits)
+    {
+        n = n * 10 + (c - '0');
+        string[]* foundWords = n in dict;
+        if (foundWords !is null)
+        {
+            foundWord = true;
+            foreach (word; *foundWords)
+            {
+                dict.printTranslations(shandler, number, digits[i + 1 .. $], words ~ word);
+            }
+        }
+    }
+    if (!foundWord && !words.lastItemIsDigit)
+    {
+        string digit = [digits[0]];
+        dict.printTranslations(shandler, number, digits[1 .. $], words ~ digit);
+    }
 }
 
 string[][BigInt] loadDictionary(string path) @trusted
 {
-  import std.stdio : File;
-
-  auto file = new File(path);
-  string[][BigInt] result;
-  foreach (line; file.byLine)
-  {
-    auto word = line.idup;
-    auto n = word.wordToNumber;
-    auto words = n in result;
-    if (words is null)
+    auto file = new File(path);
+    string[][BigInt] result;
+    foreach (line; file.byLine)
     {
-      result[n] = [word];
+        auto word = line.idup;
+        auto n = word.wordToNumber;
+        auto words = n in result;
+        if (words is null)
+        {
+            result[n] = [word];
+        }
+        else
+        {
+            *words ~= word;
+        }
     }
-    else
-    {
-      *words ~= word;
-    }
-  }
-  return result;
+    return result;
 }
 
-version (unittest)
+interface ISolutionHandler
 {
-  import dshould;
-
-  unittest
-  {
-    "a".wordToNumber.should.equal(BigInt(15));
-  }
-
-  unittest
-  {
-    [].lastItemNotDigit.should.equal(true);
-    [""].lastItemNotDigit.should.equal(true);
-    ["a"].lastItemNotDigit.should.equal(true);
-    ["0"].lastItemNotDigit.should.equal(false);
-    ["9"].lastItemNotDigit.should.equal(false);
-  }
+    void flush();
+    void put(string number, string[] words);
 }
-else
-  void main(string[] args) @trusted
+
+final class Printer : ISolutionHandler
 {
-  import std.stdio : File;
-  import std.algorithm.iteration : filter;
-  import std.ascii : isDigit;
-  import std.conv : to;
+    private OutBuffer buf = new OutBuffer();
+    private int counter;
 
-  auto file = args.length > 1 ? args[1] : "tests/words.txt";
-  auto numbers = args.length > 2 ? args[2] : "tests/numbers.txt";
-  auto dict = loadDictionary(file);
-  auto numbersFile = File(numbers);
-  foreach (number; numbersFile.byLine)
-  {
-    auto num = number.idup;
-    string digits = num.filter!(c => c.isDigit)
-      .to!string;
-    dict.printTranslations(num, digits);
-  }
+    this()
+    {
+        buf.reserve(4096);
+    }
 
+    void flush()
+    {
+        write(buf.toString());
+        buf.clear();
+    }
+
+    void put(string number, string[] words)
+    {
+        buf.writefln("%s:%-( %s%)", number, words);
+        counter++;
+        if (counter >= 100)
+        {
+            counter = 0;
+            flush();
+        }
+    }
+}
+
+final class Counter : ISolutionHandler
+{
+    private int count;
+
+    void flush() => writeln(count);
+
+    void put(string number, string[] words)
+    {
+        count++;
+    }
+}
+
+ISolutionHandler createSolutionHandler(string arg)
+{
+    switch (arg)
+    {
+    case "print":
+        return new Printer;
+    case "count":
+        return new Counter;
+    default:
+        assert(0, "First argument must be 'print' or 'count'");
+    }
+}
+
+void main(string[] args) @trusted
+{
+    import std.stdio : File;
+    import std.algorithm.iteration : filter;
+    import std.ascii : isDigit;
+    import std.conv : to;
+
+    auto shandler = args.length > 1 ? createSolutionHandler(args[1]) : new Printer;
+    auto file = args.length > 2 ? args[2] : "tests/words.txt";
+    auto numbers = args.length > 3 ? args[3] : "tests/numbers.txt";
+    auto dict = loadDictionary(file);
+    auto numbersFile = File(numbers);
+    foreach (number; numbersFile.byLine)
+    {
+        auto num = number.idup;
+        string digits = num.filter!(c => c.isDigit)
+            .to!string;
+        dict.printTranslations(shandler, num, digits);
+    }
+    shandler.flush();
 }
