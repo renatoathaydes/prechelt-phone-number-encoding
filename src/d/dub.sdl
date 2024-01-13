@@ -1,0 +1,8 @@
+name "prechelt"
+description "D Prechelt Phone Encoder"
+authors "Renato"
+license "GPL-2.0"
+// dependency "dshould" version="~>1.7.1"
+lflags "-ld_classic"
+targetType "executable"
+targetName "dencoder"
