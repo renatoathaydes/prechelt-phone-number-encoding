@@ -13,6 +13,7 @@ COMMANDS=(
   "java -cp build/java Main2"         # Java 2
   "sbcl --script src/lisp/main.lisp"  # Common Lisp
   "./phone_encoder"                   # Rust
+  # Nim conditionally added below
 )
 
 echo "Compiling Java sources"
@@ -24,6 +25,15 @@ echo "Compiling Rust sources"
 cd src/rust/phone_encoder && cargo build --release && cp target/release/phone_encoder ../../../
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
 cd ../../..
+
+if which nim; then
+  echo "Compiling Nim sources"
+  COMMANDS+=("./nim_phone_encoder")
+  nim c -d:release -d:danger -o:nim_phone_encoder src/nim/nim_phone_encoder.nim
+else
+  echo "Skipping Nim (not installed)"
+  echo "See https://nim-lang.org/install.html for installation instructions"
+fi
 
 echo "Generating inputs"
 INPUTS=(phones_1000.txt phones_10_000.txt phones_50_000.txt phones_100_000_with_empty.txt)
