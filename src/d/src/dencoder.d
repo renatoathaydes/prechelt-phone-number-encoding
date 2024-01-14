@@ -3,6 +3,7 @@ import std.stdio : write, writeln, File;
 import std.conv : to;
 import std.outbuffer : OutBuffer;
 import std.ascii : isAlpha, isDigit;
+import std.algorithm.iteration : filter;
 
 @safe:
 
@@ -164,11 +165,6 @@ ISolutionHandler createSolutionHandler(string arg)
 
 void main(string[] args) @trusted
 {
-    import std.stdio : File;
-    import std.algorithm.iteration : filter;
-    import std.ascii : isDigit;
-    import std.conv : to;
-
     auto shandler = args.length > 1 ? createSolutionHandler(args[1]) : new Printer;
     auto file = args.length > 2 ? args[2] : "tests/words.txt";
     auto numbers = args.length > 3 ? args[3] : "tests/numbers.txt";
@@ -180,7 +176,7 @@ void main(string[] args) @trusted
         auto num = number.idup;
         string digits = num.filter!(c => c.isDigit)
             .to!string;
-        dict.printTranslations(shandler, num, digits, words[0..0]);
+        dict.printTranslations(shandler, num, digits, words[0 .. 0]);
     }
     shandler.flush();
 }
