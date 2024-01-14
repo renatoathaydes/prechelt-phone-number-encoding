@@ -43,8 +43,8 @@ private Int128 wordToNumber(string word)
     {
         if (c.isAlpha)
         {
-            result *= 10;
-            result += digitByLetter[c];
+            result <<= 4;
+            result += digitByLetter[c] + '0';
         }
     }
     return result;
@@ -70,8 +70,8 @@ void printTranslations(string[][Int128] dict, ISolutionHandler shandler,
     Int128 n = Int128(1L);
     foreach (i, c; digits)
     {
-        n *= 10;
-        n += c - '0';
+        n <<= 4;
+        n += c;
         string[]* foundWords = n in dict;
         if (foundWords !is null)
         {
