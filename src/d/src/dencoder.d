@@ -4,8 +4,9 @@ import std.conv : to;
 import std.outbuffer : OutBuffer;
 import std.ascii : isAlpha, isDigit;
 import std.algorithm.iteration : filter;
+import std.container.array;
 
-@safe:
+// @safe:
 
 static const letters = [
     ['e', 'E'],
@@ -49,13 +50,16 @@ private Int128 wordToNumber(string word)
     return result;
 }
 
-private bool lastItemIsDigit(string[] words)
+private bool lastItemIsDigit(Array!string words)
 {
-    return words.length != 0 && words[$ - 1].length == 1 && words[$ - 1][0].isDigit;
+    if (words.empty)
+        return false;
+    const back = words.back();
+    return back.length == 1 && back[0].isDigit;
 }
 
 void printTranslations(string[][Int128] dict, ISolutionHandler shandler,
-    string number, string digits, string[] words)
+    string number, string digits, Array!string words)
 {
     if (digits.length == 0)
     {
@@ -74,14 +78,18 @@ void printTranslations(string[][Int128] dict, ISolutionHandler shandler,
             foundWord = true;
             foreach (word; *foundWords)
             {
-                dict.printTranslations(shandler, number, digits[i + 1 .. $], words ~ word);
+                words.insertBack(word);
+                dict.printTranslations(shandler, number, digits[i + 1 .. $], words);
+                words.removeBack();
             }
         }
     }
     if (!foundWord && !words.lastItemIsDigit)
     {
         string digit = [digits[0]];
-        dict.printTranslations(shandler, number, digits[1 .. $], words ~ digit);
+        words.insertBack(digit);
+        dict.printTranslations(shandler, number, digits[1 .. $], words);
+        words.removeBack();
     }
 }
 
@@ -109,7 +117,7 @@ string[][Int128] loadDictionary(string path) @trusted
 interface ISolutionHandler
 {
     void flush();
-    void put(string number, string[] words);
+    void put(string number, Array!string words);
 }
 
 final class Printer : ISolutionHandler
@@ -128,9 +136,9 @@ final class Printer : ISolutionHandler
         buf.clear();
     }
 
-    void put(string number, string[] words)
+    void put(string number, Array!string words)
     {
-        buf.writefln("%s:%-( %s%)", number, words);
+        buf.writefln("%s:%-( %s%)", number, words[]);
         counter++;
         if (counter >= 100)
         {
@@ -146,7 +154,7 @@ final class Counter : ISolutionHandler
 
     void flush() => writeln(count);
 
-    void put(string number, string[] words)
+    void put(string number, Array!string words)
     {
         count++;
     }
@@ -172,13 +180,14 @@ void main(string[] args) @trusted
     auto numbers = args.length > 3 ? args[3] : "tests/numbers.txt";
     auto dict = loadDictionary(file);
     auto numbersFile = File(numbers);
-    auto words = new string[16];
+    Array!string words;
+    words.reserve(128);
     foreach (number; numbersFile.byLine)
     {
         auto num = number.idup;
         string digits = num.filter!(c => c.isDigit)
             .to!string;
-        dict.printTranslations(shandler, num, digits, words[0 .. 0]);
+        dict.printTranslations(shandler, num, digits, words);
     }
     shandler.flush();
 }
