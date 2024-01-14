@@ -4,6 +4,7 @@ import std.conv : to;
 import std.outbuffer : OutBuffer;
 import std.ascii : isAlpha, isDigit;
 import std.algorithm.iteration : filter;
+import std.array : Appender, appender;
 
 @safe:
 
@@ -54,11 +55,11 @@ private bool lastItemIsDigit(string[] words)
 }
 
 void printTranslations(string[][BigInt] dict, ISolutionHandler shandler,
-    string number, string digits, string[] words)
+    string number, string digits, Appender!(string[]) words)
 {
     if (digits.length == 0)
     {
-        shandler.put(number, words);
+        shandler.put(number, words[]);
         return;
     }
     bool foundWord = false;
@@ -72,14 +73,18 @@ void printTranslations(string[][BigInt] dict, ISolutionHandler shandler,
             foundWord = true;
             foreach (word; *foundWords)
             {
-                dict.printTranslations(shandler, number, digits[i + 1 .. $], words ~ word);
+                words.put(word);
+                dict.printTranslations(shandler, number, digits[i + 1 .. $], words);
+                words.shrinkTo(words[].length - 1);
             }
         }
     }
-    if (!foundWord && !words.lastItemIsDigit)
+    if (!foundWord && !words[].lastItemIsDigit)
     {
         string digit = [digits[0]];
-        dict.printTranslations(shandler, number, digits[1 .. $], words ~ digit);
+        words.put(digit);
+        dict.printTranslations(shandler, number, digits[1 .. $], words);
+        words.shrinkTo(words[].length - 1);
     }
 }
 
@@ -170,13 +175,14 @@ void main(string[] args) @trusted
     auto numbers = args.length > 3 ? args[3] : "tests/numbers.txt";
     auto dict = loadDictionary(file);
     auto numbersFile = File(numbers);
-    auto words = new string[16];
+    auto words = appender!(string[]);
+    words.reserve(16);
     foreach (number; numbersFile.byLine)
     {
         auto num = number.idup;
         string digits = num.filter!(c => c.isDigit)
             .to!string;
-        dict.printTranslations(shandler, num, digits, words[0 .. 0]);
+        dict.printTranslations(shandler, num, digits, words);
     }
     shandler.flush();
 }
