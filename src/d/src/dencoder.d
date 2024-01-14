@@ -1,4 +1,4 @@
-import std.bigint;
+import std.int128;
 import std.stdio : write, writeln, File;
 import std.conv : to;
 import std.outbuffer : OutBuffer;
@@ -35,14 +35,15 @@ size_t[char] buildDigitByLetter()
     return result;
 }
 
-private BigInt wordToNumber(string word)
+private Int128 wordToNumber(string word)
 {
-    BigInt result = 1;
+    Int128 result = Int128(1L);
     foreach (c; word)
     {
         if (c.isAlpha)
         {
-            result = result * 10 + digitByLetter[c];
+            result *= 10;
+            result += digitByLetter[c];
         }
     }
     return result;
@@ -53,7 +54,7 @@ private bool lastItemIsDigit(string[] words)
     return words.length != 0 && words[$ - 1].length == 1 && words[$ - 1][0].isDigit;
 }
 
-void printTranslations(string[][BigInt] dict, ISolutionHandler shandler,
+void printTranslations(string[][Int128] dict, ISolutionHandler shandler,
     string number, string digits, string[] words)
 {
     if (digits.length == 0)
@@ -62,10 +63,11 @@ void printTranslations(string[][BigInt] dict, ISolutionHandler shandler,
         return;
     }
     bool foundWord = false;
-    BigInt n = 1;
+    Int128 n = Int128(1L);
     foreach (i, c; digits)
     {
-        n = n * 10 + (c - '0');
+        n *= 10;
+        n += c - '0';
         string[]* foundWords = n in dict;
         if (foundWords !is null)
         {
@@ -83,10 +85,10 @@ void printTranslations(string[][BigInt] dict, ISolutionHandler shandler,
     }
 }
 
-string[][BigInt] loadDictionary(string path) @trusted
+string[][Int128] loadDictionary(string path) @trusted
 {
     auto file = new File(path);
-    string[][BigInt] result;
+    string[][Int128] result;
     foreach (line; file.byLine)
     {
         auto word = line.idup;
