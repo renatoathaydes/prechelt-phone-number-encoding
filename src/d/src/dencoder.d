@@ -1,4 +1,3 @@
-import std.int128;
 import std.stdio : write, writeln, File;
 import std.conv : to;
 import std.outbuffer : OutBuffer;
@@ -23,31 +22,67 @@ static const letters = [
 
 static const digitByLetter = buildDigitByLetter();
 
-size_t[char] buildDigitByLetter()
+ubyte[char] buildDigitByLetter()
 {
-    size_t[char] result;
+    ubyte[char] result;
     static foreach (i, row; letters)
     {
         static foreach (letter; row)
         {
-            result[letter] = i;
+            result[letter] = cast(ubyte) i;
         }
     }
     return result;
 }
 
-private Int128 wordToNumber(string word)
+struct Key
 {
-    Int128 result = Int128(1L);
+    ubyte[] value;
+    size_t hash;
+
+    size_t toHash() const pure nothrow => hash;
+
+    bool opEquals(const Key other) const @safe nothrow pure
+    {
+        return value == other.value;
+    }
+}
+
+unittest {
+    Key k;
+    ubyte[3] value = [5,6,2];
+    size_t hash = 0;
+    hash = hashOf(cast(ubyte) 1, hash);
+    k.value = value[0 .. 1];
+    k.hash = hash;
+    assert("m".wordToNumber == k);
+    hash = hashOf(cast(ubyte)2, hash);
+    k.value = value[0 .. 2];
+    k.hash = hash;
+    assert("mi".wordToNumber == k);
+    hash = hashOf(cast(ubyte)3, hash);
+    k.value = value[0 .. 3];
+    k.hash = hash;
+    assert("mir".wordToNumber == k);
+    writeln(k);
+}
+
+private Key wordToNumber(string word)
+{
+    size_t hash = 0;
+    ubyte[] value = new ubyte[word.length];
+    size_t index;
     foreach (c; word)
     {
         if (c.isAlpha)
         {
-            result <<= 4;
-            result += digitByLetter[c] + '0';
+            auto b = digitByLetter[c];
+            value[index] = b;
+            hash = hashOf(b, hash);
+            index++;
         }
     }
-    return result;
+    return Key(value[0 .. index], hash);
 }
 
 private bool lastItemIsDigit(Array!string words)
@@ -58,7 +93,7 @@ private bool lastItemIsDigit(Array!string words)
     return back.length == 1 && back[0].isDigit;
 }
 
-void printTranslations(string[][Int128] dict, ISolutionHandler shandler,
+void printTranslations(string[][Key] dict, ISolutionHandler shandler,
     string number, string digits, Array!string words)
 {
     if (digits.length == 0)
@@ -67,11 +102,16 @@ void printTranslations(string[][Int128] dict, ISolutionHandler shandler,
         return;
     }
     bool foundWord = false;
-    Int128 n = Int128(1L);
+    auto keyValue = new ubyte[number.length];
+    Key n;
+    size_t hash = 0;
     foreach (i, c; digits)
     {
-        n <<= 4;
-        n += c;
+        auto b = cast(ubyte) (c - '0');
+        keyValue[i] = b;
+        hash = hashOf(b, hash);
+        n.value = keyValue[0 .. i + 1];
+        n.hash = hash;
         string[]* foundWords = n in dict;
         if (foundWords !is null)
         {
@@ -93,10 +133,10 @@ void printTranslations(string[][Int128] dict, ISolutionHandler shandler,
     }
 }
 
-string[][Int128] loadDictionary(string path) @trusted
+string[][Key] loadDictionary(string path) @trusted
 {
     auto file = new File(path);
-    string[][Int128] result;
+    string[][Key] result;
     foreach (line; file.byLine)
     {
         auto word = line.idup;
