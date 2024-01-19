@@ -126,8 +126,7 @@ void printTranslations(string[][Key] dict, ISolutionHandler shandler,
     }
     if (!foundWord && !words.lastItemIsDigit)
     {
-        string digit = [digits[0]];
-        words.insertBack(digit);
+        words.insertBack(digits[0 .. 1]);
         dict.printTranslations(shandler, number, digits[1 .. $], words);
         words.removeBack();
     }
