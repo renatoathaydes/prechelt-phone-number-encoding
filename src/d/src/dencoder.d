@@ -106,9 +106,9 @@ void printTranslations(in string[][Key] dict, ISolutionHandler shandler,
         return;
     }
     bool foundWord = false;
-    auto keyValue = new ubyte[number.length];
     Key n;
     size_t hash = 0;
+    ubyte[64] keyValue;
     foreach (i, c; digits)
     {
         auto b = cast(ubyte) (c - '0');
