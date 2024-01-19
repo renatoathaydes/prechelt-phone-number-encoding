@@ -48,19 +48,23 @@ struct Key
     }
 }
 
+size_t hasher(const ubyte b, const size_t prev) @safe @nogc pure {
+    return b ^ (prev << 4);
+}
+
 unittest {
     Key k;
     ubyte[3] value = [5,6,2];
     size_t hash = 0;
-    hash = hashOf(cast(ubyte) 1, hash);
+    hash = hasher(cast(ubyte) 1, hash);
     k.value = value[0 .. 1];
     k.hash = hash;
     assert("m".wordToNumber == k);
-    hash = hashOf(cast(ubyte)2, hash);
+    hash = hasher(cast(ubyte)2, hash);
     k.value = value[0 .. 2];
     k.hash = hash;
     assert("mi".wordToNumber == k);
-    hash = hashOf(cast(ubyte)3, hash);
+    hash = hasher(cast(ubyte)3, hash);
     k.value = value[0 .. 3];
     k.hash = hash;
     assert("mir".wordToNumber == k);
@@ -78,14 +82,14 @@ private Key wordToNumber(string word)
         {
             auto b = digitByLetter[c];
             value[index] = b;
-            hash = hashOf(b, hash);
+            hash = hasher(b, hash);
             index++;
         }
     }
     return Key(value[0 .. index], hash);
 }
 
-private bool lastItemIsDigit(Array!string words)
+private bool lastItemIsDigit(in Array!string words)
 {
     if (words.empty)
         return false;
@@ -109,7 +113,7 @@ void printTranslations(in string[][Key] dict, ISolutionHandler shandler,
     {
         auto b = cast(ubyte) (c - '0');
         keyValue[i] = b;
-        hash = hashOf(b, hash);
+        hash = hasher(b, hash);
         n.value = keyValue[0 .. i + 1];
         n.hash = hash;
         auto foundWords = n in dict;
@@ -156,7 +160,7 @@ string[][Key] loadDictionary(string path) @trusted
 interface ISolutionHandler
 {
     void flush();
-    void put(string number, Array!string words);
+    void put(string number, in Array!string words);
 }
 
 final class Printer : ISolutionHandler
@@ -175,7 +179,7 @@ final class Printer : ISolutionHandler
         buf.clear();
     }
 
-    void put(string number, Array!string words)
+    void put(string number, in Array!string words)
     {
         buf.writefln("%s:%-( %s%)", number, words[]);
         counter++;
@@ -193,7 +197,7 @@ final class Counter : ISolutionHandler
 
     void flush() => writeln(count);
 
-    void put(string number, Array!string words)
+    void put(string number, in Array!string words)
     {
         count++;
     }
