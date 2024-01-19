@@ -93,7 +93,7 @@ private bool lastItemIsDigit(Array!string words)
     return back.length == 1 && back[0].isDigit;
 }
 
-void printTranslations(string[][Key] dict, ISolutionHandler shandler,
+void printTranslations(in string[][Key] dict, ISolutionHandler shandler,
     string number, string digits, Array!string words)
 {
     if (digits.length == 0)
@@ -112,7 +112,7 @@ void printTranslations(string[][Key] dict, ISolutionHandler shandler,
         hash = hashOf(b, hash);
         n.value = keyValue[0 .. i + 1];
         n.hash = hash;
-        string[]* foundWords = n in dict;
+        auto foundWords = n in dict;
         if (foundWords !is null)
         {
             foundWord = true;
