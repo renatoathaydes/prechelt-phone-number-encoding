@@ -3,7 +3,7 @@ import std.conv : to;
 import std.outbuffer : OutBuffer;
 import std.ascii : isAlpha, isDigit;
 import std.algorithm.iteration : filter;
-import std.container.array;
+import std.container.array : Array;
 
 // @safe:
 
@@ -165,27 +165,35 @@ interface ISolutionHandler
 
 final class Printer : ISolutionHandler
 {
-    private OutBuffer buf = new OutBuffer();
-    private int counter;
+    import std.array : Appender;
 
-    this()
-    {
-        buf.reserve(4096);
+    private enum capacity = 10 * 4_096;
+
+    private Appender!(char[]) buf;
+
+    this() {
+        buf.reserve(capacity);
     }
 
     void flush()
     {
-        write(buf.toString());
-        buf.clear();
+        write(buf[]);
+        buf.shrinkTo(0);
     }
 
     void put(string number, in Array!string words)
     {
-        buf.writefln("%s:%-( %s%)", number, words[]);
-        counter++;
-        if (counter >= 100)
+        buf ~= number;
+        buf ~= ":";
+        foreach (word; words)
         {
-            counter = 0;
+            buf ~= ' ';
+            buf ~= word;
+        }
+        buf ~= '\n';
+        
+        if (buf[].length > capacity - 256)
+        {
             flush();
         }
     }
