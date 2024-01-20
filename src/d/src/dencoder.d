@@ -1,38 +1,37 @@
 import std.stdio : write, writeln, File;
 import std.conv : to;
 import std.outbuffer : OutBuffer;
-import std.ascii : isAlpha, isDigit;
+import std.ascii : isAlpha, isDigit, toLower;
 import std.algorithm.iteration : filter;
 import std.container.array : Array;
 
 // @safe:
 
-static const letters = [
-    ['e', 'E'],
-    ['J', 'N', 'Q', 'j', 'n', 'q'],
-    ['R', 'W', 'X', 'r', 'w', 'x'],
-    ['D', 'S', 'Y', 'd', 's', 'y'],
-    ['F', 'T', 'f', 't'],
-    ['A', 'M', 'a', 'm'],
-    ['C', 'I', 'V', 'c', 'i', 'v'],
-    ['B', 'K', 'U', 'b', 'k', 'u'],
-    ['L', 'O', 'P', 'l', 'o', 'p'],
-    ['G', 'H', 'Z', 'g', 'h', 'z'],
-];
-
-static const digitByLetter = buildDigitByLetter();
-
-ubyte[char] buildDigitByLetter()
+ubyte letterToDigit(char ch)
 {
-    ubyte[char] result;
-    static foreach (i, row; letters)
+    final switch (ch.toLower)
     {
-        static foreach (letter; row)
-        {
-            result[letter] = cast(ubyte) i;
-        }
+    case 'e', 'E':
+        return 0;
+    case 'j', 'n', 'q':
+        return 1;
+    case 'r', 'w', 'x':
+        return 2;
+    case 'd', 's', 'y':
+        return 3;
+    case 'f', 't':
+        return 4;
+    case 'a', 'm':
+        return 5;
+    case 'c', 'i', 'v':
+        return 6;
+    case 'b', 'k', 'u':
+        return 7;
+    case 'l', 'o', 'p':
+        return 8;
+    case 'g', 'h', 'z':
+        return 9;
     }
-    return result;
 }
 
 struct Key
@@ -48,23 +47,25 @@ struct Key
     }
 }
 
-size_t hasher(const ubyte b, const size_t prev) @safe @nogc pure {
+size_t hasher(const ubyte b, const size_t prev) @safe @nogc pure
+{
     return b ^ (prev << 4);
 }
 
-unittest {
+unittest
+{
     Key k;
-    ubyte[3] value = [5,6,2];
+    ubyte[3] value = [5, 6, 2];
     size_t hash = 0;
     hash = hasher(cast(ubyte) 1, hash);
     k.value = value[0 .. 1];
     k.hash = hash;
     assert("m".wordToNumber == k);
-    hash = hasher(cast(ubyte)2, hash);
+    hash = hasher(cast(ubyte) 2, hash);
     k.value = value[0 .. 2];
     k.hash = hash;
     assert("mi".wordToNumber == k);
-    hash = hasher(cast(ubyte)3, hash);
+    hash = hasher(cast(ubyte) 3, hash);
     k.value = value[0 .. 3];
     k.hash = hash;
     assert("mir".wordToNumber == k);
@@ -80,7 +81,7 @@ private Key wordToNumber(string word)
     {
         if (c.isAlpha)
         {
-            auto b = digitByLetter[c];
+            auto b = c.letterToDigit;
             value[index] = b;
             hash = hasher(b, hash);
             index++;
@@ -111,7 +112,7 @@ void printTranslations(in string[][Key] dict, ISolutionHandler shandler,
     ubyte[64] keyValue;
     foreach (i, c; digits)
     {
-        auto b = cast(ubyte) (c - '0');
+        auto b = cast(ubyte)(c - '0');
         keyValue[i] = b;
         hash = hasher(b, hash);
         n.value = keyValue[0 .. i + 1];
@@ -171,7 +172,8 @@ final class Printer : ISolutionHandler
 
     private Appender!(char[]) buf;
 
-    this() {
+    this()
+    {
         buf.reserve(capacity);
     }
 
@@ -191,7 +193,7 @@ final class Printer : ISolutionHandler
             buf ~= word;
         }
         buf ~= '\n';
-        
+
         if (buf[].length > capacity - 256)
         {
             flush();
