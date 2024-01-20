@@ -145,15 +145,7 @@ string[][Key] loadDictionary(string path) @trusted
     {
         auto word = line.idup;
         auto n = word.wordToNumber;
-        auto words = n in result;
-        if (words is null)
-        {
-            result[n] = [word];
-        }
-        else
-        {
-            *words ~= word;
-        }
+        result.require(n, []) ~= word;
     }
     return result;
 }
