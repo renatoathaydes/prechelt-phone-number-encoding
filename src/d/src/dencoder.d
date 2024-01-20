@@ -48,23 +48,25 @@ struct Key
     }
 }
 
-size_t hasher(const ubyte b, const size_t prev) @safe @nogc pure {
+size_t hasher(const ubyte b, const size_t prev) @safe @nogc pure
+{
     return b ^ (prev << 4);
 }
 
-unittest {
+unittest
+{
     Key k;
-    ubyte[3] value = [5,6,2];
+    ubyte[3] value = [5, 6, 2];
     size_t hash = 0;
     hash = hasher(cast(ubyte) 1, hash);
     k.value = value[0 .. 1];
     k.hash = hash;
     assert("m".wordToNumber == k);
-    hash = hasher(cast(ubyte)2, hash);
+    hash = hasher(cast(ubyte) 2, hash);
     k.value = value[0 .. 2];
     k.hash = hash;
     assert("mi".wordToNumber == k);
-    hash = hasher(cast(ubyte)3, hash);
+    hash = hasher(cast(ubyte) 3, hash);
     k.value = value[0 .. 3];
     k.hash = hash;
     assert("mir".wordToNumber == k);
@@ -97,7 +99,7 @@ private bool lastItemIsDigit(in Array!string words)
     return back.length == 1 && back[0].isDigit;
 }
 
-void printTranslations(in string[][Key] dict, ISolutionHandler shandler,
+void printTranslations(in string[][Key] dict, SolutionHandler shandler,
     string number, string digits, Array!string words)
 {
     if (digits.length == 0)
@@ -111,7 +113,7 @@ void printTranslations(in string[][Key] dict, ISolutionHandler shandler,
     ubyte[64] keyValue;
     foreach (i, c; digits)
     {
-        auto b = cast(ubyte) (c - '0');
+        auto b = cast(ubyte)(c - '0');
         keyValue[i] = b;
         hash = hasher(b, hash);
         n.value = keyValue[0 .. i + 1];
@@ -157,31 +159,57 @@ string[][Key] loadDictionary(string path) @trusted
     return result;
 }
 
-interface ISolutionHandler
-{
-    void flush();
-    void put(string number, in Array!string words);
-}
-
-final class Printer : ISolutionHandler
+final class SolutionHandler
 {
     import std.array : Appender;
 
     private enum capacity = 10 * 4_096;
 
     private Appender!(char[]) buf;
+    private int count;
 
-    this() {
-        buf.reserve(capacity);
+    private const void delegate() flusher;
+    private const void delegate(string number, in Array!string words) adder;
+
+    this(bool countOnly)
+    {
+        if (countOnly)
+        {
+            flusher = &counterFlush;
+            adder = &counterPut;
+        }
+        else
+        {
+            buf.reserve(capacity);
+            flusher = &printerFlush;
+            adder = &printerPut;
+        }
     }
 
     void flush()
+    {
+        flusher();
+    }
+
+    void put(string number, in Array!string words)
+    {
+        adder(number, words);
+    }
+
+    private void counterFlush() => writeln(count);
+
+    private void counterPut(string number, in Array!string words)
+    {
+        count++;
+    }
+
+    private void printerFlush()
     {
         write(buf[]);
         buf.shrinkTo(0);
     }
 
-    void put(string number, in Array!string words)
+    private void printerPut(string number, in Array!string words)
     {
         buf ~= number;
         buf ~= ":";
@@ -191,7 +219,7 @@ final class Printer : ISolutionHandler
             buf ~= word;
         }
         buf ~= '\n';
-        
+
         if (buf[].length > capacity - 256)
         {
             flush();
@@ -199,26 +227,15 @@ final class Printer : ISolutionHandler
     }
 }
 
-final class Counter : ISolutionHandler
+SolutionHandler createSolutionHandler(string[] args)
 {
-    private int count;
-
-    void flush() => writeln(count);
-
-    void put(string number, in Array!string words)
-    {
-        count++;
-    }
-}
-
-ISolutionHandler createSolutionHandler(string arg)
-{
+    auto arg = args.length > 1 ? args[1] : "print";
     switch (arg)
     {
     case "print":
-        return new Printer;
+        return new SolutionHandler(false);
     case "count":
-        return new Counter;
+        return new SolutionHandler(true);
     default:
         assert(0, "First argument must be 'print' or 'count'");
     }
@@ -226,7 +243,7 @@ ISolutionHandler createSolutionHandler(string arg)
 
 void main(string[] args) @trusted
 {
-    auto shandler = args.length > 1 ? createSolutionHandler(args[1]) : new Printer;
+    auto shandler = createSolutionHandler(args);
     auto file = args.length > 2 ? args[2] : "tests/words.txt";
     auto numbers = args.length > 3 ? args[3] : "tests/numbers.txt";
     auto dict = loadDictionary(file);
