@@ -14,7 +14,8 @@ COMMANDS=(
   "java $JVM_OPTIONS -cp build/java Main"  # Java
   "sbcl --script src/lisp/main.fasl"       # Common Lisp
   "./rust"                                 # Rust
-  "src/d/dencoder"                         # D
+  # "src/d/dencoder"                         # D
+  "src/odin/main.bin"                      # Odin
 )
 
 echo "Compiling Java sources"
@@ -33,8 +34,12 @@ cd ../plotter && cargo build --release && cp target/release/plotter ../../../
 cd ../benchmark_runner && cargo build --release && cp target/release/benchmark_runner ../../../
 cd ../../..
 
-echo "Compiling D sources"
-cd src/d && dub build -b release
+# echo "Compiling D sources"
+# cd src/d && dub build -b release --force
+# cd ../..
+
+echo "Compiling Odin sources"
+cd src/odin && odin build main -o:speed
 cd ../..
 
 echo "Generating inputs"
