@@ -1,5 +1,3 @@
-#+feature dynamic-literals
-
 package main
 
 import "core:fmt"
@@ -8,15 +6,136 @@ import "core:os"
 import "core:bufio"
 import "core:strings"
 import "core:bytes"
+import "core:slice"
 import "core:io"
 
 import "core:testing"
 
 key_len :: 56
-key_uninit :: 16
 KEY_T :: [key_len]byte
 
 Operation :: enum { PRINT, COUNT }
+
+/// Custom Hash Map to make looking up entries efficient.
+/// The default Odin map does not allow customizing the hash function
+/// or the key comparison algorithm.
+/// This makes the algorithm 10x slower than in other languages that
+/// allow it. In Odin, the same can only be achieve by using a custom
+/// Map implementation, as done below:
+
+DictionaryKey :: struct {
+    raw_key: KEY_T,
+    length: uint,
+    hash: u64,
+}
+
+append_to_key :: #force_inline proc(key: ^DictionaryKey, b: byte) {
+    key.raw_key[key.length] = b
+    key.length += 1
+    key.hash = hasher(b, key.hash)
+}
+
+set_key_hash :: proc(key: ^DictionaryKey) {
+    for i : uint = 0; i < key.length; i += 1 {
+        key.hash = hasher(key.raw_key[i], key.hash)
+    }
+}
+
+@(test)
+append_to_key_test :: proc (t: ^testing.T) {
+    k1 : DictionaryKey
+    append_to_key(&k1, 'b')
+    append_to_key(&k1, 'a')
+    append_to_key(&k1, 'r')
+
+    k2 : DictionaryKey
+    append_to_key(&k2, 'b')
+    append_to_key(&k2, 'a')
+    append_to_key(&k2, 'r')
+
+    testing.expectf(t, k1 == k2, "\nA: %v\nE: %v", k1, k2)
+    testing.expectf(t, eq_keys(&k1, &k2), "\nA: %v\nE: %v", k1, k2)
+
+    append_to_key(&k2, 'a')
+
+    testing.expectf(t, k1 != k2, "\nA: %v\nE: %v", k1, k2)
+    testing.expectf(t, !eq_keys(&k1, &k2), "\nA: %v\nE: %v", k1, k2)
+}
+
+DictionaryEntry :: struct {
+    key: ^DictionaryKey,
+    value: [dynamic]string
+}
+
+Dictionary :: struct {
+    data: [4096][dynamic]^DictionaryEntry
+}
+
+hasher :: #force_inline proc (b: byte, prev: u64) -> u64 {
+    return u64(b) | (prev << 4)
+}
+
+eq_keys :: #force_inline proc (k1: ^DictionaryKey, k2: ^DictionaryKey) -> bool {
+    return slice.equal(k1.raw_key[:k1.length], k2.raw_key[:k2.length])
+}
+
+get_entry :: #force_inline proc (key: ^DictionaryKey, entries: ^[dynamic]^DictionaryEntry) -> ^DictionaryEntry {
+    for &entry in entries {
+        if eq_keys(entry.key, key) {
+            return entry
+        }
+    }
+    return nil
+}
+
+get_or_add_entry :: proc (key: ^DictionaryKey, entries: ^[dynamic]^DictionaryEntry) -> ^DictionaryEntry {
+    for &entry in entries {
+        if eq_keys(entry.key, key) {
+            return entry
+        }
+    }
+    entry := new(DictionaryEntry)
+    entry.key = key
+    entry.value = make([dynamic]string, 0, 8)
+    append(entries, entry)
+    return entry
+}
+
+add_to_dictionary :: proc (dict: ^Dictionary, key: ^DictionaryKey, value: string) {
+    index := int(key.hash % len(dict.data))
+    entry := get_or_add_entry(key, &dict.data[index])
+    append(&entry.value, value)
+}
+
+find_in_dictionary :: proc (dict: ^Dictionary, key: ^DictionaryKey) -> []string {
+    index := int(key.hash % len(dict.data))
+    entry := get_entry(key, &dict.data[index])
+    if (entry == nil) {
+        return nil
+    }
+    return entry.value[:]
+}
+
+@(test)
+dictionary_test :: proc (t: ^testing.T) {
+    dict := new(Dictionary)
+    defer free(dict)
+    k1 : DictionaryKey
+    append_to_key(&k1, 'b')
+    append_to_key(&k1, 'a')
+    append_to_key(&k1, 'r')
+    add_to_dictionary(dict, &k1, "foo")
+    v1 := find_in_dictionary(dict, &k1)
+    expected := []string{"foo"}
+    testing.expectf(t, slice.equal(expected, v1), "\nA: %v\nE: %v", v1, expected)
+
+    k2: DictionaryKey
+    append_to_key(&k2, 'b')
+    v2 := find_in_dictionary(dict, &k2)
+    testing.expectf(t, v2 == nil, "\nA: %v\nE: %v", v2, nil)    
+}
+
+///// Phone-Encoder Solution:
 
 main :: proc() {
     using Operation
@@ -27,7 +146,7 @@ main :: proc() {
     start(op, dict, numbers)
 }
 
-start :: proc (op: Operation, dict: map[KEY_T][dynamic][]byte, numbers_path: string) {
+start :: proc (op: Operation, dict: ^Dictionary, numbers_path: string) {
     f, err := os.open(numbers_path)
     if err != os.ERROR_NONE {
         fmt.println("Cannot open the numbers file")
@@ -40,7 +159,7 @@ start :: proc (op: Operation, dict: map[KEY_T][dynamic][]byte, numbers_path: str
     defer bufio.reader_destroy(&reader)
 
     count: u32
-    words: [dynamic][]byte
+    words: [dynamic]string
     digits_bytes : [64]byte
     for {
 	line, err := bufio.reader_read_slice(&reader, '\n')
@@ -69,7 +188,7 @@ operation :: proc (name: string) -> Operation {
     }
 }
 
-letter_to_digit :: proc (ch: rune) -> byte {
+letter_to_digit :: proc "contextless" (ch: rune) -> byte {
     switch ch {
     case 'e', 'E':
         return 0
@@ -92,7 +211,7 @@ letter_to_digit :: proc (ch: rune) -> byte {
     case 'g', 'G', 'h', 'H', 'z', 'Z':
         return 9
     case:
-        panic("cannot handle char")
+        unreachable()
     }
 }
 
@@ -142,8 +261,8 @@ keep_only_digits_test :: proc (t: ^testing.T) {
     testing.expectf(t, bytes.equal(expected, actual), "\nA: %v\nE: %v", actual, expected)
 }
 
-load_dictionary :: proc (path: string) -> map[KEY_T][dynamic][]byte {
-    dict := make(map[KEY_T][dynamic][]byte)
+load_dictionary :: proc (path: string) -> ^Dictionary {
+    dict := new(Dictionary)
     f, err := os.open(path)
     if err != os.ERROR_NONE {
         fmt.println("Cannot open the dictionary file")
@@ -165,22 +284,16 @@ load_dictionary :: proc (path: string) -> map[KEY_T][dynamic][]byte {
 	}
 	line = line[:len(line) - 1]
 
-        key := new(KEY_T)
-        for _, i in key {
-            key[i] = key_uninit
-        }
-        word_to_number(line, key[:])
-        entries, ok := dict[key^]
-        if !ok {
-            entries = make([dynamic][]byte)
-        }
-        append(&entries, bytes.clone(line))
-        dict[key^] = entries
+        key := new(DictionaryKey)
+        key_slice := word_to_number(line, key.raw_key[:])
+        key.length = len(key_slice)
+        set_key_hash(key)
+        add_to_dictionary(dict, key, string(bytes.clone(line)))
     }
     return dict
 }
 
-ends_with_digit :: proc (words: [][]byte) -> bool {
+ends_with_digit :: proc (words: []string) -> bool {
     if len(words) == 0 {
         return false
     }
@@ -188,17 +301,17 @@ ends_with_digit :: proc (words: [][]byte) -> bool {
     return len(last_word) == 1 && unicode.is_digit(rune(last_word[0]))
 }
 
-print_translations :: proc (dict: map[KEY_T][dynamic][]byte, number, digits: []byte, words: ^[dynamic][]byte, op: Operation, count: ^u32) {
+print_translations :: proc (dict: ^Dictionary, number, digits: []byte, words: ^[dynamic]string, op: Operation, count: ^u32) {
     if len(digits) == 0 {
         show_solution(number, words^[:], count, op)
         return
     }
-    key : KEY_T = [?]byte {0..<key_len = key_uninit}
+    key : DictionaryKey
     found_word: bool
     for ch, i in digits {
-        key[i] = ch - '0'
-        found_words, ok := dict[key]
-        if ok {
+        append_to_key(&key, ch - '0')
+        found_words := find_in_dictionary(dict, &key)
+        if found_words != nil {
             found_word = true
             for word in found_words {
                 append(words, word)
@@ -208,13 +321,13 @@ print_translations :: proc (dict: map[KEY_T][dynamic][]byte, number, digits: []b
         }
     }
     if !found_word && !ends_with_digit(words^[:]) {
-        append(words, digits[:1])
+        append(words, string(digits[:1]))
         print_translations(dict, number, digits[1:], words, op, count)
         pop(words)
     }
 }
 
-show_solution :: proc (number: []byte, words: [][]byte, count: ^u32, op: Operation) {
+show_solution :: proc (number: []byte, words: []string, count: ^u32, op: Operation) {
     switch op {
     case .PRINT:
         fmt.printf("%s: ", number)
